@@ -353,18 +353,16 @@ class Scraper {
 			socket_close( $socket );
 			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
 		}
+		socket_close( $socket );
 
 		if ( strlen( $response ) < $read_length ) {
-			socket_close( $socket );
 			throw new \Exception( 'Invalid scrape response (' . $host . ':' . $port . ').' );
 		}
 
 		$result = unpack( 'Naction/Ntransaction_id', $response );
 		if ( $result['action'] !== 2 || $result['transaction_id'] !== $transaction_id ) {
-			socket_close( $socket );
 			throw new \Exception( 'Invalid scrape result (' . $host . ':' . $port . ').' );
 		}
-		socket_close( $socket );
 
 		$torrents_data = array();
 		$index = 8;

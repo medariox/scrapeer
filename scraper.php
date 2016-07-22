@@ -94,7 +94,7 @@ class Scraper {
 	}
 
 	/**
-	 * Normlizes the given hashes
+	 * Normalizes the given hashes
 	 *
 	 * @throws \RangeException If amount of valid infohashes > 64 or < 1.
 	 *

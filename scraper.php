@@ -307,8 +307,10 @@ class Scraper {
 
 		$result = unpack( 'Naction/Ntransaction_id', $response );
 		if ( $result['action'] !== 0 || $result['transaction_id'] !== $transaction_id ) {
+			socket_close( $socket );
 			throw new \Exception( 'Invalid scrape result (' . $host . ':' . $port . ').' );
 		}
+
 		$connection_id = substr( $response, 8, 8 );
 
 		return $connection_id;

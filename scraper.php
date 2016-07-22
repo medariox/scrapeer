@@ -64,8 +64,12 @@ class Scraper {
 		foreach ( $trackers as $index => $tracker ) {
 			if ( $index < $max_iterations ) {
 				$tracker_info = parse_url( $tracker );
-				$protocol = $tracker_info['scheme'];
 				$host = $tracker_info['host'];
+				if ( empty( $host ) ) {
+					$this->errors[] = 'Skipping invalid tracker (' . $tracker . ').';
+					continue;
+				}
+				$protocol = $tracker_info['scheme'];
 				$results = '';
 				try {
 					if ( $protocol === 'udp' ) {

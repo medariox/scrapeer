@@ -24,7 +24,7 @@ print_r($info);
 ```
 ```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 88 [completed] => 7737 [leechers] => 6 ) )```
 
-- If not specified, ports will default to 80 for HTTP/UDP and to 443 for HTTPS.
+- If not specified, port will default to 80 for HTTP/UDP and to 443 for HTTPS.
 - Single elements may also be strings instead of arrays.
 
 Single info-hash and multiple trackers (recommended usage):
@@ -38,3 +38,4 @@ print_r($info);
 ```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 59 [completed] => 83 [leechers] => 3 ) )```
 
 - First tracker in the array will be used, if it fails (invalid tracker, invalid info-hash or invalid info-hash for that tracker) the second tracker will be used and so on.
+- In this case we get a valid result from the first tracker, notice that we get different information for the same torrent - this is to be expected, as different trackers may be less up-to-date than others.

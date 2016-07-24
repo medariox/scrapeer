@@ -54,7 +54,7 @@ print_r($info);
 
 Multiple info-hashes and multiple trackers:
 ```
-$trackers = array( 'udp://tracker.coppersurfer.tk:6969/announce', 'http://tracker.internetwarriors.net:1337/announce' );
+$trackers = array( 'udp://tracker.coppersurfer.tk:6969/announce', 'http://explodie.org:6969/announce' );
 $hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
 
 $info = $scraper->scrape( $hashes, $trackers );

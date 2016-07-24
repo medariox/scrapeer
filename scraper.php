@@ -271,7 +271,7 @@ class Scraper {
 	 * Writes to the connected socket and returns the transaction ID
 	 *
 	 * @param socket resource $socket The socket resource.
-	 * @return string The transaction ID.
+	 * @return int The transaction ID.
 	 */
 	private function udp_connection_request( $socket ) {
 		$connection_id = "\x00\x00\x04\x17\x27\x10\x19\x80";

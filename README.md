@@ -20,7 +20,7 @@ $tracker = array( 'udp://tracker.coppersurfer.tk:6969/announce' );
 $hash = array( '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
 
 $info = $scraper->scrape( $hash, $tracker );
-print_r($info);
+print_r( $info );
 ```
 ```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 88 [completed] => 7737 [leechers] => 6 ) )```
 
@@ -33,7 +33,7 @@ $trackers = array( 'http://www.opentrackr.org/announce', 'udp://tracker.coppersu
 $hash = array( '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
 
 $info = $scraper->scrape( $hash, $trackers );
-print_r($info);
+print_r( $info );
 ```
 ```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 59 [completed] => 83 [leechers] => 3 ) )```
 
@@ -46,7 +46,7 @@ $tracker = array( 'http://tracker.internetwarriors.net:1337/announce' );
 $hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
 
 $info = $scraper->scrape( $hashes, $tracker );
-print_r($info);
+print_r( $info );
 ```
 ```Array ( [699cda895af6fbd5a817fff4fe6fa8ab87e36f48] => Array ( [seeders] => 4 [completed] => 236 [leechers] => 0 ) [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 7 [completed] => 946 [leechers] => 3 ) )```
 
@@ -58,6 +58,27 @@ $trackers = array( 'udp://tracker.coppersurfer.tk:6969/announce', 'http://explod
 $hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
 
 $info = $scraper->scrape( $hashes, $trackers );
-print_r($info);
+print_r( $info );
 ```
 ```Array ( [699cda895af6fbd5a817fff4fe6fa8ab87e36f48] => Array ( [seeders] => 52 [completed] => 2509 [leechers] => 1 ) [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 97 [completed] => 7751 [leechers] => 11 ) )```
+
+# Advanced usage examples
+## Error logging
+```
+$trackers = array( 'http://invalidtracker:6767/announce', 'udp://tracker.coppersurfer.tk:6969/announce' );
+$hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
+
+$info = $scraper->scrape( $hashes, $trackers );
+
+print_r( $info );
+
+// Check if we have any errors.
+if ( $scraper->has_errors() ) {
+	// Get the errors and print them.
+	print_r( $scraper->get_errors() );
+}
+```
+```Array ( [699cda895af6fbd5a817fff4fe6fa8ab87e36f48] => Array ( [seeders] => 49 [completed] => 2509 [leechers] => 1 ) [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 99 [completed] => 7754 [leechers] => 7 ) ) Array ( [0] => Invalid scrape connection (invalidtracker:6767). )```
+
+- The first tracker is not valid, it will be skipped and an error will be added to the error logger.
+- The scraper keeps scraping until one valid tracker is found or there are no more trackers to try.

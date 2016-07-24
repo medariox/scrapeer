@@ -42,12 +42,22 @@ print_r($info);
 
 Multiple info-hashes and single tracker:
 ```
-$tracker = array( 'http://tracker.aletorrenty.pl:2710/announce' );
+$tracker = array( 'http://tracker.internetwarriors.net:1337/announce' );
 $hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
 
 $info = $scraper->scrape( $hashes, $tracker );
 print_r($info);
 ```
-```Array ( [699cda895af6fbd5a817fff4fe6fa8ab87e36f48] => Array ( [seeders] => 3 [completed] => 512 [leechers] => 0 ) [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 7 [completed] => 1714 [leechers] => 0 ) )```
+```Array ( [699cda895af6fbd5a817fff4fe6fa8ab87e36f48] => Array ( [seeders] => 4 [completed] => 236 [leechers] => 0 ) [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 7 [completed] => 946 [leechers] => 3 ) )```
 
 - Info-hashes can be upper or lower case.
+
+Multiple info-hashes and multiple trackers:
+```
+$trackers = array( 'udp://tracker.coppersurfer.tk:6969/announce', 'http://tracker.internetwarriors.net:1337/announce' );
+$hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
+
+$info = $scraper->scrape( $hashes, $trackers );
+print_r($info);
+```
+```Array ( [699cda895af6fbd5a817fff4fe6fa8ab87e36f48] => Array ( [seeders] => 52 [completed] => 2509 [leechers] => 1 ) [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 97 [completed] => 7751 [leechers] => 11 ) )```

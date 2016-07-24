@@ -164,8 +164,8 @@ class Scraper {
 	 * Builds the HTTP(S) query
 	 *
 	 * @param array|string $infohashes List (>1) or string of infohash(es).
-	 * @param string 	   $protocol Protocol to use for the scraping.
-	 * @param string 	   $host Domain or IP address of the tracker.
+	 * @param string       $protocol Protocol to use for the scraping.
+	 * @param string       $host Domain or IP address of the tracker.
 	 * @param int 	       $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
 	 * @return string Request query.
 	 */

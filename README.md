@@ -7,7 +7,7 @@ Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for t
 - Automatically discards invalid trackers and info-hashes
 - Allows setting timeout per tracker and max. number of trackers
 - Supports up to 64 info-hashes per scrape
-- Aims to be as lightweight and efficient as possible
+- Aims to be as lightweight, straightforward and efficient as possible
 
 # Basic usage examples
 Single info-hash and single tracker (UDP):
@@ -24,7 +24,7 @@ print_r($info);
 ```
 ```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 88 [completed] => 7737 [leechers] => 6 ) )```
 
-- If not specified, port will default to 80 for HTTP/UDP and to 443 for HTTPS.
+- If not specified, the port will default to 80 for HTTP/UDP and to 443 for HTTPS.
 - Single elements may also be strings instead of arrays.
 
 Single info-hash and multiple trackers (recommended usage):
@@ -38,4 +38,16 @@ print_r($info);
 ```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 59 [completed] => 83 [leechers] => 3 ) )```
 
 - First tracker in the array will be used, if it fails (invalid tracker, invalid info-hash or invalid info-hash for that tracker) the second tracker will be used and so on.
-- In this case we get a valid result from the first tracker, notice that we get different information for the same torrent - this is to be expected, as different trackers may be less up-to-date than others.
+- In this case we get a valid result from the first tracker, notice that we get different information for the same torrent - this is to be expected, as different trackers may be more or less up-to-date than others.
+
+Multiple info-hashes and single tracker:
+```
+$tracker = array( 'http://tracker.aletorrenty.pl:2710/announce' );
+$hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
+
+$info = $scraper->scrape( $hashes, $tracker );
+print_r($info);
+```
+```Array ( [699cda895af6fbd5a817fff4fe6fa8ab87e36f48] => Array ( [seeders] => 3 [completed] => 512 [leechers] => 0 ) [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 7 [completed] => 1714 [leechers] => 0 ) )```
+
+- Info-hashes can be upper or lower case.

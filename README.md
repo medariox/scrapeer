@@ -23,3 +23,9 @@ $info = $scraper->scrape( $hash, $tracker );
 print_r($info);
 ```
 ```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 88 [completed] => 7737 [leechers] => 6 ) )```
+
+Single info-hash and single tracker (HTTP) without port:
+
+```$tracker = 'http://www.opentrackr.org/announce';```
+
+```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 62 [completed] => 80 [leechers] => 2 ) )```

@@ -4,13 +4,13 @@ Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for t
 # Features
 - Retrieves seeders, leechers and completed torrent information
 - Supports HTTP, HTTPS and UDP trackers
-- Automatically discards invalid trackers and infohashes
+- Automatically discards invalid trackers and info-hashes
 - Allows setting timeout per tracker and max. number of trackers
-- Supports up to 64 infohashes per scrape
+- Supports up to 64 info-hashes per scrape
 - Aims to be as lightweight and efficient as possible
 
 # Basic usage examples
-Single infohash and single tracker (UDP):
+Single info-hash and single tracker (UDP):
 ```
 require 'scraper.php';
 
@@ -22,4 +22,4 @@ $hash = '4344503B7E797EBF31582327A5BAAE35B11BDA01';
 $info = $scraper->scrape( $hash, $tracker );
 print_r($info);
 ```
-```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 88 [completed] => 77 [leechers] => 6 ) )```
+```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 88 [completed] => 7737 [leechers] => 6 ) )```

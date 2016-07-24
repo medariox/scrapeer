@@ -109,6 +109,7 @@ $info = $scraper->scrape( $hashes, $trackers, 2, 3 );
 
 # FAQs
 - What are info-hashes? How do I get them?
+
 From [The BitTorrent Protocol Specification](http://www.bittorrent.org/beps/bep_0003.html):
 
 > The 20 byte sha1 hash of the bencoded form of the info value from the metainfo file. Note that this is a substring of the metainfo file. The info-hash must be the hash of the encoded form as found in the .torrent file, regardless of it being invalid. This value will almost certainly have to be escaped.

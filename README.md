@@ -10,7 +10,7 @@ Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for t
 - Aims to be as lightweight, straightforward and efficient as possible
 
 # Basic usage examples
-### Single info-hash and single tracker (UDP):
+### Single info-hash and single tracker:
 ```
 require 'scraper.php';
 
@@ -108,10 +108,9 @@ $info = $scraper->scrape( $hashes, $trackers, 2, 3 );
 - Default: 2 seconds (recommended).
 
 # FAQs
-What are info-hashes? How do I get them?
-- From [The BitTorrent Protocol Specification](http://www.bittorrent.org/beps/bep_0003.html):
+- What are info-hashes? How do I get them?
+From [The BitTorrent Protocol Specification](http://www.bittorrent.org/beps/bep_0003.html):
 
 > The 20 byte sha1 hash of the bencoded form of the info value from the metainfo file. Note that this is a substring of the metainfo file. The info-hash must be the hash of the encoded form as found in the .torrent file, regardless of it being invalid. This value will almost certainly have to be escaped.
 
-
-- There are many ways to retrieve the info-hashes from your torrents, a PHP based solution would be [torrent-bencode](https://github.com/bhutanio/torrent-bencode) for example.
+There are many ways to retrieve the info-hashes from your torrents, a PHP based solution would be [torrent-bencode](https://github.com/bhutanio/torrent-bencode) for example.

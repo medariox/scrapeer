@@ -82,3 +82,27 @@ if ( $scraper->has_errors() ) {
 
 - The first tracker is not valid, it will be skipped and an error will be added to the error logger.
 - The scraper keeps scraping until one valid tracker is found or there are no more trackers to try.
+- Invalid info-hashes will be logged and skipped.
+
+## Advanced options
+### Maximum trackers
+```
+$trackers = array( 'http://invalidtracker:6767/announce', 'udp://tracker.coppersurfer.tk:6969/announce' );
+$hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
+
+// The max. amount of trackers to try is 1.
+$info = $scraper->scrape( $hashes, $trackers, 1 );
+```
+- The scraper will stop after the first tracker, regardless of its validity.
+- Default: All trackers in the array.
+
+### Timeout per tracker
+```
+$trackers = array( 'http://invalidtracker:6767/announce', 'udp://tracker.coppersurfer.tk:6969/announce' );
+$hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
+
+// The max. amount of trackers to try is 2 and timeout per tracker is 3s.
+$info = $scraper->scrape( $hashes, $trackers, 2, 3 );
+```
+- Each tracker will have a timeout of 3 seconds (total timeout in this case would be 6 seconds).
+- Default: 2 seconds (recommended).

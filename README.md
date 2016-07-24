@@ -10,7 +10,7 @@ Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for t
 - Aims to be as lightweight, straightforward and efficient as possible
 
 # Basic usage examples
-## Single info-hash and single tracker (UDP):
+### Single info-hash and single tracker (UDP):
 ```
 require 'scraper.php';
 
@@ -27,7 +27,7 @@ print_r( $info );
 - If not specified, the port will default to 80 for HTTP/UDP and to 443 for HTTPS.
 - Single elements may also be strings instead of arrays.
 
-## Single info-hash and multiple trackers (recommended usage):
+### Single info-hash and multiple trackers (recommended usage):
 ```
 $trackers = array( 'http://www.opentrackr.org/announce', 'udp://tracker.coppersurfer.tk:6969/announce' );
 $hash = array( '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
@@ -40,7 +40,7 @@ print_r( $info );
 - First tracker in the array will be used, if it fails (invalid tracker, invalid info-hash or invalid info-hash for that tracker) the second tracker will be used and so on.
 - In this case we get a valid result from the first tracker, notice that we get different information for the same torrent - this is to be expected, as different trackers may be more or less up-to-date than others.
 
-## Multiple info-hashes and single tracker:
+### Multiple info-hashes and single tracker:
 ```
 $tracker = array( 'http://tracker.internetwarriors.net:1337/announce' );
 $hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
@@ -52,7 +52,7 @@ print_r( $info );
 
 - Info-hashes can be upper or lower case.
 
-## Multiple info-hashes and multiple trackers:
+### Multiple info-hashes and multiple trackers:
 ```
 $trackers = array( 'udp://tracker.coppersurfer.tk:6969/announce', 'http://explodie.org:6969/announce' );
 $hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
@@ -110,8 +110,8 @@ $info = $scraper->scrape( $hashes, $trackers, 2, 3 );
 # FAQs
 What are info-hashes? How do I get them?
 - From [The BitTorrent Protocol Specification](http://www.bittorrent.org/beps/bep_0003.html):
-```
-The 20 byte sha1 hash of the bencoded form of the info value from the metainfo file. Note that this is a substring of the metainfo file. The info-hash must be the hash of the encoded form as found in the .torrent file, regardless of it being invalid. This value will almost certainly have to be escaped.
-```
+
+> The 20 byte sha1 hash of the bencoded form of the info value from the metainfo file. Note that this is a substring of the metainfo file. The info-hash must be the hash of the encoded form as found in the .torrent file, regardless of it being invalid. This value will almost certainly have to be escaped.
+
 
 - There are many ways to retrieve the info-hashes from your torrents, a PHP based solution would be [torrent-bencode](https://github.com/bhutanio/torrent-bencode) for example.

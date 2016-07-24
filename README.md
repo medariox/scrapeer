@@ -16,16 +16,13 @@ require 'scraper.php';
 
 $scraper = new Scrapeer\Scraper();
 
-$tracker = 'udp://tracker.coppersurfer.tk:6969/announce';
-$hash = '4344503B7E797EBF31582327A5BAAE35B11BDA01';
+$tracker = array( 'udp://tracker.coppersurfer.tk:6969/announce' );
+$hash = array( '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
 
 $info = $scraper->scrape( $hash, $tracker );
 print_r($info);
 ```
 ```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 88 [completed] => 7737 [leechers] => 6 ) )```
 
-Single info-hash and single tracker (HTTP) without port:
-
-```$tracker = 'http://www.opentrackr.org/announce';```
-
-```Array ( [4344503B7E797EBF31582327A5BAAE35B11BDA01] => Array ( [seeders] => 62 [completed] => 80 [leechers] => 2 ) )```
+- If not specified, ports will default to 80 for HTTP and UDP and to 443 for HTTPS.
+- Single elements may also be strings instead of arrays.

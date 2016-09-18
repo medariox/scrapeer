@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.1';
+	const VERSION = '0.2';
 
 	/**
 	 * Array of errors
@@ -64,25 +64,30 @@ class Scraper {
 		foreach ( $trackers as $index => $tracker ) {
 			if ( $index < $max_iterations ) {
 				$tracker_info = parse_url( $tracker );
+				$protocol = $tracker_info['scheme'];
 				$host = $tracker_info['host'];
-				if ( empty( $host ) ) {
+				if ( empty( $protocol ) || empty( $host ) ) {
 					$this->errors[] = 'Skipping invalid tracker (' . $tracker . ').';
 					continue;
 				}
-				$protocol = $tracker_info['scheme'];
+
 				$results = '';
 				try {
-					if ( $protocol === 'udp' ) {
-						$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 80;
-						$results = $this->scrape_udp( $infohashes, $timeout, $host, $port );
-					} else if ( $protocol === 'http' ) {
-						$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 80;
-						$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
-					} else if ( $protocol === 'https' ) {
-						$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 443;
-						$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
-					} else {
-						throw new \Exception( 'Unsupported protocol (' . $protocol . '://' . $host . ').' );
+					switch ( $protocol ) {
+						case 'udp':
+							$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 80;
+							$results = $this->scrape_udp( $infohashes, $timeout, $host, $port );
+							break;
+						case 'http':
+							$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 80;
+							$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
+							break;
+						case 'https':
+							$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 443;
+							$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
+							break;
+						default:
+							throw new \Exception( 'Unsupported protocol (' . $protocol . '://' . $host . ').' );
 					}
 				} catch ( \Exception $e ) {
 					$this->errors[] = $e->getMessage();

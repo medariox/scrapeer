@@ -93,7 +93,7 @@ class Scraper {
 					$this->errors[] = $e->getMessage();
 					continue;
 				}
-				return $results; 
+				return $results;
 			}
 		}
 	}

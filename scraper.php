@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.2';
+	const VERSION = '0.3';
 
 	/**
 	 * Array of errors
@@ -35,9 +35,16 @@ class Scraper {
 	private $errors = array();
 
 	/**
+	 * Array of infohashes to scrape
+	 *
+	 * @var array
+	 */
+	private $infohashes = array();
+
+	/**
 	 * Initiates the scraper
 	 *
-	 * @throws \Exception In case of unsupported protocol.
+	 * @throws \RangeException In case of invalid amount of info-hashes.
 	 *
 	 * @param array|string $hashes List (>1) or string of infohash(es).
 	 * @param array|string $trackers List (>1) or string of tracker(s).
@@ -54,13 +61,14 @@ class Scraper {
 		}
 
 		try {
-			$infohashes = $this->normalize_infohashes( $hashes );
+			$this->infohashes = $this->normalize_infohashes( $hashes );
 		} catch ( \RangeException $e ) {
 			$this->errors[] = $e->getMessage();
 			return;
 		}
 
 		$max_iterations = isset( $max_trackers ) ? $max_trackers : count( $trackers );
+		$final_result = [];
 		foreach ( $trackers as $index => $tracker ) {
 			if ( $index < $max_iterations ) {
 				$tracker_info = parse_url( $tracker );
@@ -70,32 +78,54 @@ class Scraper {
 					$this->errors[] = 'Skipping invalid tracker (' . $tracker . ').';
 					continue;
 				}
-
-				$results = '';
-				try {
-					switch ( $protocol ) {
-						case 'udp':
-							$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 80;
-							$results = $this->scrape_udp( $infohashes, $timeout, $host, $port );
-							break;
-						case 'http':
-							$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 80;
-							$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
-							break;
-						case 'https':
-							$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : 443;
-							$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
-							break;
-						default:
-							throw new \Exception( 'Unsupported protocol (' . $protocol . '://' . $host . ').' );
-					}
-				} catch ( \Exception $e ) {
-					$this->errors[] = $e->getMessage();
+				if ( ! empty( $this->infohashes ) ) {
+					$result = $this->try_scrape( $protocol, $host, $tracker_info['port'], $timeout );
+					$final_result = array_merge( $final_result, $result );
 					continue;
 				}
-				return $results;
+				break;
 			}
 		}
+		return $final_result;
+	}
+
+	/**
+	 * Tries to scrape with a single tracker.
+	 *
+	 * @throws \Exception In case of unsupported protocol.
+	 *
+	 * @param string $protocol Protocol of the tracker.
+	 * @param string $host Domain or address of the tracker.
+	 * @param int    $port Optional. Port number of the tracker.
+	 * @param int    $timeout Optional. Maximum time for each tracker scrape in seconds, Default 2.
+	 * @return array List of results.
+	 */
+	private function try_scrape( string $protocol, string $host, $port, $timeout ) {
+		$infohashes = $this->infohashes;
+		$this->infohashes = [];
+		$results = [];
+		try {
+			switch ( $protocol ) {
+				case 'udp':
+					$port = isset( $port ) ? $port : 80;
+					$results = $this->scrape_udp( $infohashes, $timeout, $host, $port );
+					break;
+				case 'http':
+					$port = isset( $port ) ? $port : 80;
+					$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
+					break;
+				case 'https':
+					$port = isset( $port ) ? $port : 443;
+					$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
+					break;
+				default:
+					throw new \Exception( 'Unsupported protocol (' . $protocol . '://' . $host . ').' );
+			}
+		} catch ( \Exception $e ) {
+			$this->infohashes = $infohashes;
+			$this->errors[] = $e->getMessage();
+		}
+		return $results;
 	}
 
 	/**
@@ -232,8 +262,8 @@ class Scraper {
 		$torrents_data = array();
 
 		foreach ( $infohashes as $infohash ) {
-			$ben_hash = '/' . pack( 'H*', $infohash );
-			$search_string = $ben_hash . 'd8:completei(\d+)e10:downloadedi(\d+)e10:incompletei(\d+)ee/';
+			$ben_hash = '/\Q' . pack( 'H*', $infohash ) . '\E';
+			$search_string = $ben_hash . 'd8:completei(\d+)e10:downloadedi(\d+)e10:incompletei(\d+)/';
 			preg_match( $search_string , $response, $match );
 			if ( ! empty( $match ) ) {
 				$torrent_info['seeders'] = $match[1];
@@ -241,6 +271,7 @@ class Scraper {
 				$torrent_info['leechers'] = $match[3];
 				$torrents_data[ $infohash ] = $torrent_info;
 			} else {
+				$this->collect_infohash( $infohash );
 				$this->errors[] = 'Invalid infohash (' . $infohash . ') for tracker: ' . $host . '.';
 			}
 		}
@@ -381,12 +412,22 @@ class Scraper {
 				$results = unpack( 'Nseeders/Ncompleted/Nleechers', $search_string );
 				$torrents_data[ $infohash ] = $results;
 			} else {
+				$this->collect_infohash( $infohash );
 				$this->errors[] = 'Invalid infohash (' . $infohash . ') for tracker: ' . $host . '.';
 			}
 			$index += 12;
 		}
 
 		return $torrents_data;
+	}
+
+	/**
+	 * Collects info-hashes that couldn't be scraped.
+	 *
+	 * @param string $infohash Infohash that wasn't scraped.
+	 */
+	private function collect_infohash( string $infohash ) {
+		$this->infohashes[] = $infohash;
 	}
 
 	/**

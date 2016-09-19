@@ -261,7 +261,7 @@ class Scraper {
 	private function http_data( $response, $infohashes, string $host ) {
 		$torrents_data = array();
 
-		foreach ( $infohashes as $index => $infohash ) {
+		foreach ( $infohashes as $infohash ) {
 			$ben_hash = '/\Q' . pack( 'H*', $infohash ) . '\E';
 			$search_string = $ben_hash . 'd8:completei(\d+)e10:downloadedi(\d+)e10:incompletei(\d+)/';
 			preg_match( $search_string , $response, $match );

@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.3';
+	const VERSION = '0.4';
 
 	/**
 	 * Array of errors
@@ -53,9 +53,11 @@ class Scraper {
 	 * @return array List of results.
 	 */
 	public function scrape( $hashes, $trackers, $max_trackers = null, $timeout = 2 ) {
+		$final_result = array();
+
 		if ( empty( $trackers ) ) {
 			$this->errors[] = 'No tracker specified, aborting.';
-			return;
+			return $final_result;
 		} else if ( ! is_array( $trackers ) ) {
 			$trackers = array( $trackers );
 		}
@@ -64,13 +66,12 @@ class Scraper {
 			$this->infohashes = $this->normalize_infohashes( $hashes );
 		} catch ( \RangeException $e ) {
 			$this->errors[] = $e->getMessage();
-			return;
+			return $final_result;
 		}
 
 		$max_iterations = isset( $max_trackers ) ? $max_trackers : count( $trackers );
-		$final_result = [];
 		foreach ( $trackers as $index => $tracker ) {
-			if ( $index < $max_iterations ) {
+			if ( ! empty( $this->infohashes ) && $index < $max_iterations ) {
 				$tracker_info = parse_url( $tracker );
 				$protocol = $tracker_info['scheme'];
 				$host = $tracker_info['host'];
@@ -78,13 +79,13 @@ class Scraper {
 					$this->errors[] = 'Skipping invalid tracker (' . $tracker . ').';
 					continue;
 				}
-				if ( ! empty( $this->infohashes ) ) {
-					$result = $this->try_scrape( $protocol, $host, $tracker_info['port'], $timeout );
-					$final_result = array_merge( $final_result, $result );
-					continue;
-				}
-				break;
+
+				$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : null;
+				$result = $this->try_scrape( $protocol, $host, $port, $timeout );
+				$final_result = array_merge( $final_result, $result );
+				continue;
 			}
+			break;
 		}
 		return $final_result;
 	}
@@ -102,8 +103,8 @@ class Scraper {
 	 */
 	private function try_scrape( string $protocol, string $host, $port, $timeout ) {
 		$infohashes = $this->infohashes;
-		$this->infohashes = [];
-		$results = [];
+		$this->infohashes = array();
+		$results = array();
 		try {
 			switch ( $protocol ) {
 				case 'udp':

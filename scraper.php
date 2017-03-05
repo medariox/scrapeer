@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.4.1';
+	const VERSION = '0.4.2';
 
 	/**
 	 * Array of errors
@@ -81,7 +81,10 @@ class Scraper {
 				}
 
 				$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : null;
-				$result = $this->try_scrape( $protocol, $host, $port, $timeout );
+				$path = isset( $tracker_info['path'] ) ? $tracker_info['path'] : null;
+				$path_array = $path ? explode( '/', rtrim( $path, '/' ), 3 ) : array();
+				$passkey = count( $path_array ) > 2  ? '/' . $path_array[1] : '';
+				$result = $this->try_scrape( $protocol, $host, $port, $passkey, $timeout );
 				$final_result = array_merge( $final_result, $result );
 				continue;
 			}
@@ -101,7 +104,7 @@ class Scraper {
 	 * @param int    $timeout Optional. Maximum time for each tracker scrape in seconds, Default 2.
 	 * @return array List of results.
 	 */
-	private function try_scrape( string $protocol, string $host, $port, $timeout ) {
+	private function try_scrape( string $protocol, string $host, $port, string $passkey, $timeout ) {
 		$infohashes = $this->infohashes;
 		$this->infohashes = array();
 		$results = array();
@@ -113,11 +116,11 @@ class Scraper {
 					break;
 				case 'http':
 					$port = isset( $port ) ? $port : 80;
-					$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
+					$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port, $passkey );
 					break;
 				case 'https':
 					$port = isset( $port ) ? $port : 443;
-					$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port );
+					$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port, $passkey );
 					break;
 				default:
 					throw new \Exception( 'Unsupported protocol (' . $protocol . '://' . $host . ').' );
@@ -188,8 +191,8 @@ class Scraper {
 	 * @param int          $port Optional. Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
 	 * @return array List of results.
 	 */
-	private function scrape_http( $infohashes, $timeout, string $protocol, string $host, $port ) {
-		$query = $this->http_query( $infohashes, $protocol, $host, $port );
+	private function scrape_http( $infohashes, $timeout, string $protocol, string $host, $port, string $passkey ) {
+		$query = $this->http_query( $infohashes, $protocol, $host, $port, $passkey );
 		$response = $this->http_response( $query, $timeout, $host, $port );
 		$results = $this->http_data( $response, $infohashes, $host );
 
@@ -205,8 +208,8 @@ class Scraper {
 	 * @param int 	       $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
 	 * @return string Request query.
 	 */
-	private function http_query( $infohashes, string $protocol, string $host, $port ) {
-		$tracker_url = $protocol . '://' . $host . ':' . $port;
+	private function http_query( $infohashes, string $protocol, string $host, $port, string $passkey ) {
+		$tracker_url = $protocol . '://' . $host . ':' . $port . $passkey;
 		$scrape_query = '';
 
 		foreach ( $infohashes as $index => $infohash ) {
@@ -263,13 +266,13 @@ class Scraper {
 		$torrents_data = array();
 
 		foreach ( $infohashes as $infohash ) {
-			$ben_hash = '/\Q' . pack( 'H*', $infohash ) . '\E';
-			$search_string = $ben_hash . 'd8:completei(\d+)e10:downloadedi(\d+)e10:incompletei(\d+)e/';
-			preg_match( $search_string, $response, $match );
-			if ( ! empty( $match ) ) {
-				$torrent_info['seeders'] = $match[1];
-				$torrent_info['completed'] = $match[2];
-				$torrent_info['leechers'] = $match[3];
+			$ben_hash = '/' . preg_quote( pack( 'H*', $infohash ), '/' );
+			$search_string = $ben_hash . 'd(8:completei(\d+)e)?(10:downloadedi(\d+)e)?(10:incompletei(\d+)e)?/';
+			preg_match( $search_string, $response, $matches );
+			if ( ! empty( $matches ) ) {
+				$torrent_info['seeders'] = $matches[2] ? $matches[2] : '0';
+				$torrent_info['completed'] = $matches[4] ? $matches[4] : '0';
+				$torrent_info['leechers'] = $matches[6] ? $matches[6] : '0';
 				$torrents_data[ $infohash ] = $torrent_info;
 			} else {
 				$this->collect_infohash( $infohash );

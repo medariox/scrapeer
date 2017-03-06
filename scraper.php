@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.4.3';
+	const VERSION = '0.4.4';
 
 	/**
 	 * Array of errors
@@ -273,9 +273,9 @@ class Scraper {
 			$search_string = $ben_hash . 'd(8:completei(\d+)e)?(10:downloadedi(\d+)e)?(10:incompletei(\d+)e)?/';
 			preg_match( $search_string, $response, $matches );
 			if ( ! empty( $matches ) ) {
-				$torrent_info['seeders'] = $matches[2] ? $matches[2] : '0';
-				$torrent_info['completed'] = $matches[4] ? $matches[4] : '0';
-				$torrent_info['leechers'] = $matches[6] ? $matches[6] : '0';
+				$torrent_info['seeders'] = $matches[2] ? intval( $matches[2] ) : 0;
+				$torrent_info['completed'] = $matches[4] ? intval( $matches[4] ) : 0;
+				$torrent_info['leechers'] = $matches[6] ? intval( $matches[6] ) : 0;
 				$torrents_data[ $infohash ] = $torrent_info;
 			} else {
 				$this->collect_infohash( $infohash );

@@ -246,7 +246,13 @@ class Scraper {
 			),
 		));
 
-		if ( ! $response = file_get_contents( $query, false, $context ) ) {
+		try{
+			$response = @file_get_contents( $query, false, $context );
+
+			if ($response === false) {
+				throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
+			}
+		}catch(Exception $e){
 			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
 		}
 

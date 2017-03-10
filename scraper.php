@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.4.4';
+	const VERSION = '0.4.5';
 
 	/**
 	 * Array of errors
@@ -246,7 +246,7 @@ class Scraper {
 			),
 		));
 
-		if ( ! $response = file_get_contents( $query, false, $context ) ) {
+		if ( false === ( $response = @file_get_contents( $query, false, $context ) ) ) {
 			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
 		}
 
@@ -289,7 +289,7 @@ class Scraper {
 	/**
 	 * Creates the UDP socket and establishes the connection
 	 *
-	 * @throws \Exception If the socket couldn't be created.
+	 * @throws \Exception If the socket couldn't be created or connected to.
 	 *
 	 * @param int    $timeout Maximum time for each scrape in seconds, Default 2.
 	 * @param string $host Domain or IP address of the tracker.
@@ -297,21 +297,23 @@ class Scraper {
 	 * @return socket resource Created and connected socket.
 	 */
 	private function udp_create_connection( $timeout, string $host, $port ) {
-		$socket = socket_create( AF_INET, SOCK_DGRAM, SOL_UDP );
-
-		if ( ! is_resource( $socket ) ) {
+		if ( false === ( $socket = @socket_create( AF_INET, SOCK_DGRAM, SOL_UDP ) ) ) {
 			throw new \Exception( "Couldn't create socket." );
 		}
 
 		socket_set_option( $socket, SOL_SOCKET, SO_RCVTIMEO, array( 'sec' => $timeout, 'usec' => 0 ) );
 		socket_set_option( $socket, SOL_SOCKET, SO_SNDTIMEO, array( 'sec' => $timeout, 'usec' => 0 ) );
-		socket_connect( $socket, $host, $port );
+		if ( false === @socket_connect( $socket, $host, $port ) ) {
+			throw new \Exception( "Couldn't connect to socket." );
+		}
 
 		return $socket;
 	}
 
 	/**
 	 * Writes to the connected socket and returns the transaction ID
+	 *
+	 * @throws \Exception If the socket couldn't be written to.
 	 *
 	 * @param socket resource $socket The socket resource.
 	 * @return int The transaction ID.
@@ -321,7 +323,10 @@ class Scraper {
 		$action = 0;
 		$transaction_id = random_int( 0, 255 );
 		$buffer = $connection_id . pack( 'N', $action ) . pack( 'N', $transaction_id );
-		socket_write( $socket, $buffer, strlen( $buffer ) );
+		if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
+			socket_close( $socket );
+			throw new \Exception( "Couldn't write to socket." );
+		}
 
 		return $transaction_id;
 	}
@@ -338,7 +343,7 @@ class Scraper {
 	 * @return string The connection ID.
 	 */
 	private function udp_connection_response( $socket, $transaction_id, string $host, $port ) {
-		if ( ! $response = socket_read( $socket, 16 ) ) {
+		if ( false === ( $response = @socket_read( $socket, 16 ) ) ) {
 			socket_close( $socket );
 			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
 		}
@@ -362,6 +367,8 @@ class Scraper {
 	/**
 	 * Writes to the connected socket
 	 *
+	 * @throws \Exception If the socket couldn't be written to.
+	 *
 	 * @param socket resource $socket The socket resource.
 	 * @param array           $hashes List (>1) or string of infohash(es).
 	 * @param string          $connection_id The connection ID.
@@ -376,7 +383,10 @@ class Scraper {
 		}
 
 		$buffer = $connection_id . pack( 'N', $action ) . pack( 'N', $transaction_id ) . $infohashes;
-		socket_write( $socket, $buffer, strlen( $buffer ) );
+		if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
+			socket_close( $socket );
+			throw new \Exception( "Couldn't write to socket." );
+		}
 	}
 
 	/**
@@ -394,7 +404,7 @@ class Scraper {
 	private function udp_scrape_response( $socket, $hashes, $transaction_id, string $host, $port ) {
 		$read_length = 8 + ( 12 * count( $hashes ) );
 
-		if ( ! $response = socket_read( $socket, $read_length ) ) {
+		if ( false === ( $response = @socket_read( $socket, $read_length ) ) ) {
 			socket_close( $socket );
 			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
 		}

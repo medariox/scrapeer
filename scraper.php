@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.4.2';
+	const VERSION = '0.4.4';
 
 	/**
 	 * Array of errors
@@ -101,6 +101,7 @@ class Scraper {
 	 * @param string $protocol Protocol of the tracker.
 	 * @param string $host Domain or address of the tracker.
 	 * @param int    $port Optional. Port number of the tracker.
+	 * @param string $passkey Optional. Passkey provided in the scrape request.
 	 * @param int    $timeout Optional. Maximum time for each tracker scrape in seconds, Default 2.
 	 * @return array List of results.
 	 */
@@ -189,6 +190,7 @@ class Scraper {
 	 * @param string       $protocol Protocol to use for the scraping.
 	 * @param string       $host Domain or IP address of the tracker.
 	 * @param int          $port Optional. Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
+	 * @param string       $passkey Optional. Passkey provided in the scrape request.
 	 * @return array List of results.
 	 */
 	private function scrape_http( $infohashes, $timeout, string $protocol, string $host, $port, string $passkey ) {
@@ -205,7 +207,8 @@ class Scraper {
 	 * @param array|string $infohashes List (>1) or string of infohash(es).
 	 * @param string       $protocol Protocol to use for the scraping.
 	 * @param string       $host Domain or IP address of the tracker.
-	 * @param int 	       $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
+	 * @param int          $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
+	 * @param string       $passkey Optional. Passkey provided in the scrape request.
 	 * @return string Request query.
 	 */
 	private function http_query( $infohashes, string $protocol, string $host, $port, string $passkey ) {
@@ -276,9 +279,9 @@ class Scraper {
 			$search_string = $ben_hash . 'd(8:completei(\d+)e)?(10:downloadedi(\d+)e)?(10:incompletei(\d+)e)?/';
 			preg_match( $search_string, $response, $matches );
 			if ( ! empty( $matches ) ) {
-				$torrent_info['seeders'] = $matches[2] ? $matches[2] : '0';
-				$torrent_info['completed'] = $matches[4] ? $matches[4] : '0';
-				$torrent_info['leechers'] = $matches[6] ? $matches[6] : '0';
+				$torrent_info['seeders'] = $matches[2] ? intval( $matches[2] ) : 0;
+				$torrent_info['completed'] = $matches[4] ? intval( $matches[4] ) : 0;
+				$torrent_info['leechers'] = $matches[6] ? intval( $matches[6] ) : 0;
 				$torrents_data[ $infohash ] = $torrent_info;
 			} else {
 				$this->collect_infohash( $infohash );

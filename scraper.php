@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.4.5';
+	const VERSION = '0.4.6';
 
 	/**
 	 * Array of errors
@@ -354,7 +354,7 @@ class Scraper {
 		}
 
 		$result = unpack( 'Naction/Ntransaction_id', $response );
-		if ( $result['action'] !== 0 || $result['transaction_id'] !== $transaction_id ) {
+		if ( 0 !== $result['action'] || $result['transaction_id'] !== $transaction_id ) {
 			socket_close( $socket );
 			throw new \Exception( 'Invalid scrape result (' . $host . ':' . $port . ').' );
 		}
@@ -415,7 +415,7 @@ class Scraper {
 		}
 
 		$result = unpack( 'Naction/Ntransaction_id', $response );
-		if ( $result['action'] !== 2 || $result['transaction_id'] !== $transaction_id ) {
+		if ( 2 !== $result['action'] || $result['transaction_id'] !== $transaction_id ) {
 			throw new \Exception( 'Invalid scrape result (' . $host . ':' . $port . ').' );
 		}
 

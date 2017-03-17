@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.4.6';
+	const VERSION = '0.4.7';
 
 	/**
 	 * Array of errors
@@ -105,7 +105,7 @@ class Scraper {
 	 * @param int    $timeout Optional. Maximum time for each tracker scrape in seconds, Default 2.
 	 * @return array List of results.
 	 */
-	private function try_scrape( string $protocol, string $host, $port, string $passkey, $timeout ) {
+	private function try_scrape( $protocol, $host, $port, $passkey, $timeout ) {
 		$infohashes = $this->infohashes;
 		$this->infohashes = array();
 		$results = array();
@@ -172,7 +172,7 @@ class Scraper {
 	 * @param int          $port Optional. Port number of the tracker, Default 80.
 	 * @return array List of results.
 	 */
-	private function scrape_udp( $infohashes, $timeout, string $host, $port ) {
+	private function scrape_udp( $infohashes, $timeout, $host, $port ) {
 		$socket = $this->udp_create_connection( $timeout, $host, $port );
 		$transaction_id = $this->udp_connection_request( $socket );
 		$connection_id = $this->udp_connection_response( $socket, $transaction_id, $host, $port );
@@ -193,7 +193,7 @@ class Scraper {
 	 * @param string       $passkey Optional. Passkey provided in the scrape request.
 	 * @return array List of results.
 	 */
-	private function scrape_http( $infohashes, $timeout, string $protocol, string $host, $port, string $passkey ) {
+	private function scrape_http( $infohashes, $timeout, $protocol, $host, $port, $passkey ) {
 		$query = $this->http_query( $infohashes, $protocol, $host, $port, $passkey );
 		$response = $this->http_response( $query, $timeout, $host, $port );
 		$results = $this->http_data( $response, $infohashes, $host );
@@ -211,7 +211,7 @@ class Scraper {
 	 * @param string       $passkey Optional. Passkey provided in the scrape request.
 	 * @return string Request query.
 	 */
-	private function http_query( $infohashes, string $protocol, string $host, $port, string $passkey ) {
+	private function http_query( $infohashes, $protocol, $host, $port, $passkey ) {
 		$tracker_url = $protocol . '://' . $host . ':' . $port . $passkey;
 		$scrape_query = '';
 
@@ -239,7 +239,7 @@ class Scraper {
 	 * @param int    $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
 	 * @return stream context resource Request response.
 	 */
-	private function http_response( string $query, $timeout, string $host, $port ) {
+	private function http_response( $query, $timeout, $host, $port ) {
 		$context = stream_context_create( array(
 			'http' => array(
 				'timeout' => $timeout,
@@ -265,7 +265,7 @@ class Scraper {
 	 * @param string                  $host Domain or IP address of the tracker.
 	 * @return array Parsed data.
 	 */
-	private function http_data( $response, $infohashes, string $host ) {
+	private function http_data( $response, $infohashes, $host ) {
 		$torrents_data = array();
 
 		foreach ( $infohashes as $infohash ) {
@@ -296,7 +296,7 @@ class Scraper {
 	 * @param int    $port Port number of the tracker, Default 80.
 	 * @return socket resource Created and connected socket.
 	 */
-	private function udp_create_connection( $timeout, string $host, $port ) {
+	private function udp_create_connection( $timeout, $host, $port ) {
 		if ( false === ( $socket = @socket_create( AF_INET, SOCK_DGRAM, SOL_UDP ) ) ) {
 			throw new \Exception( "Couldn't create socket." );
 		}
@@ -342,7 +342,7 @@ class Scraper {
 	 * @param int             $port Port number of the tracker, Default 80.
 	 * @return string The connection ID.
 	 */
-	private function udp_connection_response( $socket, $transaction_id, string $host, $port ) {
+	private function udp_connection_response( $socket, $transaction_id, $host, $port ) {
 		if ( false === ( $response = @socket_read( $socket, 16 ) ) ) {
 			socket_close( $socket );
 			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
@@ -374,7 +374,7 @@ class Scraper {
 	 * @param string          $connection_id The connection ID.
 	 * @param int             $transaction_id The transaction ID.
 	 */
-	private function udp_scrape_request( $socket, $hashes, string $connection_id, $transaction_id ) {
+	private function udp_scrape_request( $socket, $hashes, $connection_id, $transaction_id ) {
 		$action = 2;
 		$infohashes = '';
 
@@ -401,7 +401,7 @@ class Scraper {
 	 * @param int             $port Port number of the tracker, Default 80.
 	 * @return array Scraped torrent data.
 	 */
-	private function udp_scrape_response( $socket, $hashes, $transaction_id, string $host, $port ) {
+	private function udp_scrape_response( $socket, $hashes, $transaction_id, $host, $port ) {
 		$read_length = 8 + ( 12 * count( $hashes ) );
 
 		if ( false === ( $response = @socket_read( $socket, $read_length ) ) ) {
@@ -443,7 +443,7 @@ class Scraper {
 	 *
 	 * @param string $infohash Infohash that wasn't scraped.
 	 */
-	private function collect_infohash( string $infohash ) {
+	private function collect_infohash( $infohash ) {
 		$this->infohashes[] = $infohash;
 	}
 

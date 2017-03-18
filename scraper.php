@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.4.7';
+	const VERSION = '0.4.8';
 
 	/**
 	 * Array of errors
@@ -321,7 +321,7 @@ class Scraper {
 	private function udp_connection_request( $socket ) {
 		$connection_id = "\x00\x00\x04\x17\x27\x10\x19\x80";
 		$action = 0;
-		$transaction_id = random_int( 0, 255 );
+		$transaction_id = mt_rand( 0, 2147483647 );
 		$buffer = $connection_id . pack( 'N', $action ) . pack( 'N', $transaction_id );
 		if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
 			socket_close( $socket );

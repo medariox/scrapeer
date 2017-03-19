@@ -25,7 +25,7 @@ class Scraper {
 	 *
 	 * @var string
 	 */
-	const VERSION = '0.4.8';
+	const VERSION = '0.4.9';
 
 	/**
 	 * Array of errors
@@ -72,18 +72,17 @@ class Scraper {
 		$max_iterations = isset( $max_trackers ) ? $max_trackers : count( $trackers );
 		foreach ( $trackers as $index => $tracker ) {
 			if ( ! empty( $this->infohashes ) && $index < $max_iterations ) {
-				$tracker_info = parse_url( $tracker );
-				$protocol = $tracker_info['scheme'];
-				$host = $tracker_info['host'];
+				$info = parse_url( $tracker );
+				$protocol = $info['scheme'];
+				$host = $info['host'];
 				if ( empty( $protocol ) || empty( $host ) ) {
 					$this->errors[] = 'Skipping invalid tracker (' . $tracker . ').';
 					continue;
 				}
 
-				$port = isset( $tracker_info['port'] ) ? $tracker_info['port'] : null;
-				$path = isset( $tracker_info['path'] ) ? $tracker_info['path'] : null;
-				$path_array = $path ? explode( '/', rtrim( $path, '/' ), 3 ) : array();
-				$passkey = count( $path_array ) > 2  ? '/' . $path_array[1] : '';
+				$port = isset( $info['port'] ) ? $info['port'] : null;
+				$path = isset( $info['path'] ) ? $info['path'] : null;
+				$passkey = $this->get_passkey( $path );
 				$result = $this->try_scrape( $protocol, $host, $port, $passkey, $timeout );
 				$final_result = array_merge( $final_result, $result );
 				continue;
@@ -147,7 +146,7 @@ class Scraper {
 		}
 
 		foreach ( $infohashes as $index => $infohash ) {
-			if ( ! preg_match( '#^[a-f0-9]{40}$#i', $infohash ) ) {
+			if ( ! preg_match( '/^[a-f0-9]{40}$/i', $infohash ) ) {
 				$this->errors[] = 'Invalid infohash skipped (' . $infohash . ').';
 				unset( $infohashes[ $index ] );
 			}
@@ -161,6 +160,20 @@ class Scraper {
 		$infohashes = array_values( $infohashes );
 
 		return $infohashes;
+	}
+
+	/**
+	 * Returns the passkey found in the scrape request.
+	 *
+	 * @param string $path Path from the scrape request.
+	 * @return string Passkey or empty string.
+	 */
+	private function get_passkey( $path ) {
+		if ( ! is_null( $path ) && preg_match( '/[a-z0-9]{32}/i', $path, $matches ) ) {
+			return '/' . $matches[0];
+		}
+
+		return '';
 	}
 
 	/**
@@ -269,13 +282,23 @@ class Scraper {
 		$torrents_data = array();
 
 		foreach ( $infohashes as $infohash ) {
-			$ben_hash = '/' . preg_quote( pack( 'H*', $infohash ), '/' );
-			$search_string = $ben_hash . 'd(8:completei(\d+)e)?(10:downloadedi(\d+)e)?(10:incompletei(\d+)e)?/';
-			preg_match( $search_string, $response, $matches );
-			if ( ! empty( $matches ) ) {
-				$torrent_info['seeders'] = $matches[2] ? intval( $matches[2] ) : 0;
-				$torrent_info['completed'] = $matches[4] ? intval( $matches[4] ) : 0;
-				$torrent_info['leechers'] = $matches[6] ? intval( $matches[6] ) : 0;
+			$ben_hash = '20:' . pack( 'H*', $infohash ) . 'd';
+			$start_pos = strpos( $response, $ben_hash );
+			if ( false !== $start_pos ) {
+				$start = $start_pos + 24;
+				$head = substr( $response , $start );
+				$end = strpos( $head, 'ee' ) + 1;
+				$data = substr( $response, $start, $end );
+
+				$seeders = '8:completei';
+				$torrent_info['seeders'] = $this->get_information( $data, $seeders, 'e' );
+
+				$completed = '10:downloadedi';
+				$torrent_info['completed'] = $this->get_information( $data, $completed, 'e' );
+
+				$leechers = '10:incompletei';
+				$torrent_info['leechers'] = $this->get_information( $data, $leechers, 'e' );
+
 				$torrents_data[ $infohash ] = $torrent_info;
 			} else {
 				$this->collect_infohash( $infohash );
@@ -284,6 +307,28 @@ class Scraper {
 		}
 
 		return $torrents_data;
+	}
+
+	/**
+	 * Parses a string and returns the data between $start and $end.
+	 *
+	 * @param string $data The data that will be parsed.
+	 * @param string $start Beginning part of the data.
+	 * @param string $end Ending part of the data.
+	 * @return int Parsed information or 0.
+	 */
+	private function get_information( $data, $start, $end ) {
+		$start_pos = strpos( $data, $start );
+		if ( false !== $start_pos ) {
+			$start = $start_pos + strlen( $start );
+			$head = substr( $data , $start );
+			$end = strpos( $head, $end );
+			$information = substr( $data, $start, $end );
+
+			return intval( $information );
+		}
+
+		return 0;
 	}
 
 	/**

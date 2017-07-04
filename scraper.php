@@ -20,493 +20,672 @@ namespace Scrapeer;
  */
 class Scraper {
 
-	/**
-	 * Current version of Scrapeer
-	 *
-	 * @var string
-	 */
-	const VERSION = '0.4.9';
+    /**
+     * Current version of Scrapeer
+     *
+     * @var string
+     */
+    const VERSION = '0.5.0';
 
-	/**
-	 * Array of errors
-	 *
-	 * @var array
-	 */
-	private $errors = array();
+    /**
+     * Array of errors
+     *
+     * @var array
+     */
+    private $errors = array();
 
-	/**
-	 * Array of infohashes to scrape
-	 *
-	 * @var array
-	 */
-	private $infohashes = array();
+    /**
+     * Array of infohashes to scrape
+     *
+     * @var array
+     */
+    private $infohashes = array();
 
-	/**
-	 * Initiates the scraper
-	 *
-	 * @throws \RangeException In case of invalid amount of info-hashes.
-	 *
-	 * @param array|string $hashes List (>1) or string of infohash(es).
-	 * @param array|string $trackers List (>1) or string of tracker(s).
-	 * @param int|null     $max_trackers Optional. Maximum number of trackers to be scraped, Default all.
-	 * @param int          $timeout Optional. Maximum time for each tracker scrape in seconds, Default 2.
-	 * @return array List of results.
-	 */
-	public function scrape( $hashes, $trackers, $max_trackers = null, $timeout = 2 ) {
-		$final_result = array();
+    /**
+     * Timeout for a single tracker
+     *
+     * @var int
+     */
+    private $timeout;
 
-		if ( empty( $trackers ) ) {
-			$this->errors[] = 'No tracker specified, aborting.';
-			return $final_result;
-		} else if ( ! is_array( $trackers ) ) {
-			$trackers = array( $trackers );
-		}
+    /**
+     * Initiates the scraper
+     *
+     * @throws \RangeException In case of invalid amount of info-hashes.
+     *
+     * @param array|string $hashes List (>1) or string of infohash(es).
+     * @param array|string $trackers List (>1) or string of tracker(s).
+     * @param int|null     $max_trackers Optional. Maximum number of trackers to be scraped, Default all.
+     * @param int          $timeout Optional. Maximum time for each tracker scrape in seconds, Default 2.
+     * @param bool         $announce Optional. Use announce instead of scrape, Default false.
+     * @return array List of results.
+     */
+    public function scrape( $hashes, $trackers, $max_trackers = null, $timeout = 2, $announce = false ) {
+        $final_result = array();
 
-		try {
-			$this->infohashes = $this->normalize_infohashes( $hashes );
-		} catch ( \RangeException $e ) {
-			$this->errors[] = $e->getMessage();
-			return $final_result;
-		}
+        if ( empty( $trackers ) ) {
+            $this->errors[] = 'No tracker specified, aborting.';
+            return $final_result;
+        } else if ( ! is_array( $trackers ) ) {
+            $trackers = array( $trackers );
+        }
 
-		$max_iterations = isset( $max_trackers ) ? $max_trackers : count( $trackers );
-		foreach ( $trackers as $index => $tracker ) {
-			if ( ! empty( $this->infohashes ) && $index < $max_iterations ) {
-				$info = parse_url( $tracker );
-				$protocol = $info['scheme'];
-				$host = $info['host'];
-				if ( empty( $protocol ) || empty( $host ) ) {
-					$this->errors[] = 'Skipping invalid tracker (' . $tracker . ').';
-					continue;
-				}
+        if ( ! is_int( $timeout ) || $timeout < 1 ) {
+            $this->errors[] = 'Timeout must be a valid integer.';
+            return $final_result;
+        } else {
+            $this->timeout = $timeout;
+        }
 
-				$port = isset( $info['port'] ) ? $info['port'] : null;
-				$path = isset( $info['path'] ) ? $info['path'] : null;
-				$passkey = $this->get_passkey( $path );
-				$result = $this->try_scrape( $protocol, $host, $port, $passkey, $timeout );
-				$final_result = array_merge( $final_result, $result );
-				continue;
-			}
-			break;
-		}
-		return $final_result;
-	}
+        try {
+            $this->infohashes = $this->normalize_infohashes( $hashes );
+        } catch ( \RangeException $e ) {
+            $this->errors[] = $e->getMessage();
+            return $final_result;
+        }
 
-	/**
-	 * Tries to scrape with a single tracker.
-	 *
-	 * @throws \Exception In case of unsupported protocol.
-	 *
-	 * @param string $protocol Protocol of the tracker.
-	 * @param string $host Domain or address of the tracker.
-	 * @param int    $port Optional. Port number of the tracker.
-	 * @param string $passkey Optional. Passkey provided in the scrape request.
-	 * @param int    $timeout Optional. Maximum time for each tracker scrape in seconds, Default 2.
-	 * @return array List of results.
-	 */
-	private function try_scrape( $protocol, $host, $port, $passkey, $timeout ) {
-		$infohashes = $this->infohashes;
-		$this->infohashes = array();
-		$results = array();
-		try {
-			switch ( $protocol ) {
-				case 'udp':
-					$port = isset( $port ) ? $port : 80;
-					$results = $this->scrape_udp( $infohashes, $timeout, $host, $port );
-					break;
-				case 'http':
-					$port = isset( $port ) ? $port : 80;
-					$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port, $passkey );
-					break;
-				case 'https':
-					$port = isset( $port ) ? $port : 443;
-					$results = $this->scrape_http( $infohashes, $timeout, $protocol, $host, $port, $passkey );
-					break;
-				default:
-					throw new \Exception( 'Unsupported protocol (' . $protocol . '://' . $host . ').' );
-			}
-		} catch ( \Exception $e ) {
-			$this->infohashes = $infohashes;
-			$this->errors[] = $e->getMessage();
-		}
-		return $results;
-	}
+        $max_iterations = isset( $max_trackers ) ? $max_trackers : count( $trackers );
+        foreach ( $trackers as $index => $tracker ) {
+            if ( ! empty( $this->infohashes ) && $index < $max_iterations ) {
+                $info = parse_url( $tracker );
+                $protocol = $info['scheme'];
+                $host = $info['host'];
+                if ( empty( $protocol ) || empty( $host ) ) {
+                    $this->errors[] = 'Skipping invalid tracker (' . $tracker . ').';
+                    continue;
+                }
 
-	/**
-	 * Normalizes the given hashes
-	 *
-	 * @throws \RangeException If amount of valid infohashes > 64 or < 1.
-	 *
-	 * @param array $infohashes List of infohash(es).
-	 * @return array Normalized infohash(es).
-	 */
-	private function normalize_infohashes( $infohashes ) {
-		if ( ! is_array( $infohashes ) ) {
-			$infohashes = array( $infohashes );
-		}
+                $port = isset( $info['port'] ) ? $info['port'] : null;
+                $path = isset( $info['path'] ) ? $info['path'] : null;
+                $passkey = $this->get_passkey( $path );
+                $result = $this->try_scrape( $protocol, $host, $port, $passkey, $announce );
+                $final_result = array_merge( $final_result, $result );
+                continue;
+            }
+            break;
+        }
+        return $final_result;
+    }
 
-		foreach ( $infohashes as $index => $infohash ) {
-			if ( ! preg_match( '/^[a-f0-9]{40}$/i', $infohash ) ) {
-				$this->errors[] = 'Invalid infohash skipped (' . $infohash . ').';
-				unset( $infohashes[ $index ] );
-			}
-		}
+    /**
+     * Normalizes the given hashes
+     *
+     * @throws \RangeException If amount of valid infohashes > 64 or < 1.
+     *
+     * @param array $infohashes List of infohash(es).
+     * @return array Normalized infohash(es).
+     */
+    private function normalize_infohashes( $infohashes ) {
+        if ( ! is_array( $infohashes ) ) {
+            $infohashes = array( $infohashes );
+        }
 
-		$total_infohashes = count( $infohashes );
-		if ( $total_infohashes > 64 || $total_infohashes < 1 ) {
-			throw new \RangeException( 'Invalid amount of valid infohashes (' . $total_infohashes . ').' );
-		}
+        foreach ( $infohashes as $index => $infohash ) {
+            if ( ! preg_match( '/^[a-f0-9]{40}$/i', $infohash ) ) {
+                $this->errors[] = 'Invalid infohash skipped (' . $infohash . ').';
+                unset( $infohashes[ $index ] );
+            }
+        }
 
-		$infohashes = array_values( $infohashes );
+        $total_infohashes = count( $infohashes );
+        if ( $total_infohashes > 64 || $total_infohashes < 1 ) {
+            throw new \RangeException( 'Invalid amount of valid infohashes (' . $total_infohashes . ').' );
+        }
 
-		return $infohashes;
-	}
+        $infohashes = array_values( $infohashes );
 
-	/**
-	 * Returns the passkey found in the scrape request.
-	 *
-	 * @param string $path Path from the scrape request.
-	 * @return string Passkey or empty string.
-	 */
-	private function get_passkey( $path ) {
-		if ( ! is_null( $path ) && preg_match( '/[a-z0-9]{32}/i', $path, $matches ) ) {
-			return '/' . $matches[0];
-		}
+        return $infohashes;
+    }
 
-		return '';
-	}
+    /**
+     * Returns the passkey found in the scrape request.
+     *
+     * @param string $path Path from the scrape request.
+     * @return string Passkey or empty string.
+     */
+    private function get_passkey( $path ) {
+        if ( ! is_null( $path ) && preg_match( '/[a-z0-9]{32}/i', $path, $matches ) ) {
+            return '/' . $matches[0];
+        }
 
-	/**
-	 * Initiates the UDP scraping
-	 *
-	 * @param array|string $infohashes List (>1) or string of infohash(es).
-	 * @param int          $timeout Optional. Maximum time for each scrape in seconds, Default 2.
-	 * @param string       $host Domain or IP address of the tracker.
-	 * @param int          $port Optional. Port number of the tracker, Default 80.
-	 * @return array List of results.
-	 */
-	private function scrape_udp( $infohashes, $timeout, $host, $port ) {
-		$socket = $this->udp_create_connection( $timeout, $host, $port );
-		$transaction_id = $this->udp_connection_request( $socket );
-		$connection_id = $this->udp_connection_response( $socket, $transaction_id, $host, $port );
-		$this->udp_scrape_request( $socket, $infohashes, $connection_id, $transaction_id );
-		$results = $this->udp_scrape_response( $socket, $infohashes, $transaction_id, $host, $port );
+        return '';
+    }
 
-		return $results;
-	}
+    /**
+     * Tries to scrape with a single tracker.
+     *
+     * @throws \Exception In case of unsupported protocol.
+     *
+     * @param string $protocol Protocol of the tracker.
+     * @param string $host Domain or address of the tracker.
+     * @param int    $port Optional. Port number of the tracker.
+     * @param string $passkey Optional. Passkey provided in the scrape request.
+     * @param bool   $announce Optional. Use announce instead of scrape, Default false.
+     * @return array List of results.
+     */
+    private function try_scrape( $protocol, $host, $port, $passkey, $announce ) {
+        $infohashes = $this->infohashes;
+        $this->infohashes = array();
+        $results = array();
+        try {
+            switch ( $protocol ) {
+                case 'udp':
+                    $port = isset( $port ) ? $port : 80;
+                    $results = $this->scrape_udp( $infohashes, $host, $port, $announce );
+                    break;
+                case 'http':
+                    $port = isset( $port ) ? $port : 80;
+                    $results = $this->scrape_http( $infohashes, $protocol, $host, $port, $passkey, $announce );
+                    break;
+                case 'https':
+                    $port = isset( $port ) ? $port : 443;
+                    $results = $this->scrape_http( $infohashes, $protocol, $host, $port, $passkey, $announce );
+                    break;
+                default:
+                    throw new \Exception( 'Unsupported protocol (' . $protocol . '://' . $host . ').' );
+            }
+        } catch ( \Exception $e ) {
+            $this->infohashes = $infohashes;
+            $this->errors[] = $e->getMessage();
+        }
+        return $results;
+    }
 
-	/**
-	 * Initiates the HTTP(S) scraping
-	 *
-	 * @param array|string $infohashes List (>1) or string of infohash(es).
-	 * @param int          $timeout Optional. Maximum time for each scrape in seconds, Default 2.
-	 * @param string       $protocol Protocol to use for the scraping.
-	 * @param string       $host Domain or IP address of the tracker.
-	 * @param int          $port Optional. Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
-	 * @param string       $passkey Optional. Passkey provided in the scrape request.
-	 * @return array List of results.
-	 */
-	private function scrape_http( $infohashes, $timeout, $protocol, $host, $port, $passkey ) {
-		$query = $this->http_query( $infohashes, $protocol, $host, $port, $passkey );
-		$response = $this->http_response( $query, $timeout, $host, $port );
-		$results = $this->http_data( $response, $infohashes, $host );
+    /**
+     * Initiates the HTTP(S) scraping
+     *
+     * @param array|string $infohashes List (>1) or string of infohash(es).
+     * @param string       $protocol Protocol to use for the scraping.
+     * @param string       $host Domain or IP address of the tracker.
+     * @param int          $port Optional. Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
+     * @param string       $passkey Optional. Passkey provided in the scrape request.
+     * @param bool         $announce Optional. Use announce instead of scrape, Default false.
+     * @return array List of results.
+     */
+    private function scrape_http( $infohashes, $protocol, $host, $port, $passkey, $announce ) {
+        if ( true === $announce ) {
+            $response = $this->http_announce( $infohashes, $protocol, $host, $port, $passkey );
+        } else {
+            $query = $this->http_query( $infohashes, $protocol, $host, $port, $passkey );
+            $response = $this->http_request( $query, $host, $port );
+        }
+        $results = $this->http_data( $response, $infohashes, $host );
 
-		return $results;
-	}
+        return $results;
+    }
 
-	/**
-	 * Builds the HTTP(S) query
-	 *
-	 * @param array|string $infohashes List (>1) or string of infohash(es).
-	 * @param string       $protocol Protocol to use for the scraping.
-	 * @param string       $host Domain or IP address of the tracker.
-	 * @param int          $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
-	 * @param string       $passkey Optional. Passkey provided in the scrape request.
-	 * @return string Request query.
-	 */
-	private function http_query( $infohashes, $protocol, $host, $port, $passkey ) {
-		$tracker_url = $protocol . '://' . $host . ':' . $port . $passkey;
-		$scrape_query = '';
+    /**
+     * Builds the HTTP(S) query
+     *
+     * @param array|string $infohashes List (>1) or string of infohash(es).
+     * @param string       $protocol Protocol to use for the scraping.
+     * @param string       $host Domain or IP address of the tracker.
+     * @param int          $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
+     * @param string       $passkey Optional. Passkey provided in the scrape request.
+     * @return string Request query.
+     */
+    private function http_query( $infohashes, $protocol, $host, $port, $passkey ) {
+        $tracker_url = $protocol . '://' . $host . ':' . $port . $passkey;
+        $scrape_query = '';
 
-		foreach ( $infohashes as $index => $infohash ) {
-			if ( $index > 0 ) {
-				$scrape_query .= '&info_hash=' . urlencode( pack( 'H*', $infohash ) );
-			} else {
-				$scrape_query .= '/scrape?info_hash=' . urlencode( pack( 'H*', $infohash ) );
-			}
-		}
-		$request_query = $tracker_url . $scrape_query;
+        foreach ( $infohashes as $index => $infohash ) {
+            if ( $index > 0 ) {
+                $scrape_query .= '&info_hash=' . urlencode( pack( 'H*', $infohash ) );
+            } else {
+                $scrape_query .= '/scrape?info_hash=' . urlencode( pack( 'H*', $infohash ) );
+            }
+        }
+        $request_query = $tracker_url . $scrape_query;
 
-		return $request_query;
-	}
+        return $request_query;
+    }
 
-	/**
-	 * Executes the query and returns the result
-	 *
-	 * @throws \Exception If the connection can't be established.
-	 * @throws \Exception If the response isn't valid.
-	 *
-	 * @param string $query The query that will be executed.
-	 * @param int    $timeout Maximum time for each scrape in seconds, Default 2.
-	 * @param string $host Domain or IP address of the tracker.
-	 * @param int    $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
-	 * @return stream context resource Request response.
-	 */
-	private function http_response( $query, $timeout, $host, $port ) {
-		$context = stream_context_create( array(
-			'http' => array(
-				'timeout' => $timeout,
-			),
-		));
+    /**
+     * Executes the query and returns the result
+     *
+     * @throws \Exception If the connection can't be established.
+     * @throws \Exception If the response isn't valid.
+     *
+     * @param string $query The query that will be executed.
+     * @param string $host Domain or IP address of the tracker.
+     * @param int    $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
+     * @return string Request response.
+     */
+    private function http_request( $query, $host, $port ) {
+        $context = stream_context_create( array(
+            'http' => array(
+                'timeout' => $this->timeout,
+            ),
+        ));
 
-		if ( false === ( $response = @file_get_contents( $query, false, $context ) ) ) {
-			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
-		}
+        if ( false === ( $response = @file_get_contents( $query, false, $context ) ) ) {
+            throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
+        }
 
-		if ( substr( $response, 0, 12 ) !== 'd5:filesd20:' ) {
-			throw new \Exception( 'Invalid scrape response (' . $host . ':' . $port . ').' );
-		}
+        if ( substr( $response, 0, 12 ) !== 'd5:filesd20:' ) {
+            throw new \Exception( 'Invalid scrape response (' . $host . ':' . $port . ').' );
+        }
 
-		return $response;
-	}
+        return $response;
+    }
 
-	/**
-	 * Parses the response and returns the data
-	 *
-	 * @param stream context resource $response The response that will be parsed.
-	 * @param array                   $infohashes List of infohash(es).
-	 * @param string                  $host Domain or IP address of the tracker.
-	 * @return array Parsed data.
-	 */
-	private function http_data( $response, $infohashes, $host ) {
-		$torrents_data = array();
+    /**
+     * Builds the query, sends the announce request and returns the data
+     *
+     * @throws \Exception If the connection can't be established.
+     *
+     * @param array|string $infohashes List (>1) or string of infohash(es).
+     * @param string       $protocol Protocol to use for the scraping.
+     * @param string       $host Domain or IP address of the tracker.
+     * @param int          $port Port number of the tracker, Default 80 (HTTP) or 443 (HTTPS).
+     * @param string       $passkey Optional. Passkey provided in the scrape request.
+     * @return string Request response.
+     */
+    private function http_announce( $infohashes, $protocol, $host, $port, $passkey ) {
+        $tracker_url = $protocol . '://' . $host . ':' . $port . $passkey;
+        $context = stream_context_create( array(
+            'http' => array(
+                'timeout' => $this->timeout,
+            ),
+        ));
 
-		foreach ( $infohashes as $infohash ) {
-			$ben_hash = '20:' . pack( 'H*', $infohash ) . 'd';
-			$start_pos = strpos( $response, $ben_hash );
-			if ( false !== $start_pos ) {
-				$start = $start_pos + 24;
-				$head = substr( $response , $start );
-				$end = strpos( $head, 'ee' ) + 1;
-				$data = substr( $response, $start, $end );
+        $response_data = '';
+        foreach ( $infohashes as $infohash ) {
+            $query = $tracker_url . '/announce?info_hash=' . urlencode( pack( 'H*', $infohash ) );
+            if ( false === ( $response = @file_get_contents( $query, false, $context ) ) ) {
+                throw new \Exception( 'Invalid announce connection (' . $host . ':' . $port . ').' );
+            }
 
-				$seeders = '8:completei';
-				$torrent_info['seeders'] = $this->get_information( $data, $seeders, 'e' );
+            if ( substr( $response, 0, 12 ) !== 'd8:completei' ||
+                substr( $response, 0, 46 ) === 'd8:completei0e10:downloadedi0e10:incompletei1e' ) {
+                continue;
+            }
 
-				$completed = '10:downloadedi';
-				$torrent_info['completed'] = $this->get_information( $data, $completed, 'e' );
+            $ben_hash = '20:' . pack( 'H*', $infohash ) . 'd';
+            $response_data .= $ben_hash . $response;
+        }
 
-				$leechers = '10:incompletei';
-				$torrent_info['leechers'] = $this->get_information( $data, $leechers, 'e' );
+        return $response_data;
+    }
 
-				$torrents_data[ $infohash ] = $torrent_info;
-			} else {
-				$this->collect_infohash( $infohash );
-				$this->errors[] = 'Invalid infohash (' . $infohash . ') for tracker: ' . $host . '.';
-			}
-		}
+    /**
+     * Parses the response and returns the data
+     *
+     * @param string $response The response that will be parsed.
+     * @param array  $infohashes List of infohash(es).
+     * @param string $host Domain or IP address of the tracker.
+     * @return array Parsed data.
+     */
+    private function http_data( $response, $infohashes, $host ) {
+        $torrents_data = array();
 
-		return $torrents_data;
-	}
+        foreach ( $infohashes as $infohash ) {
+            $ben_hash = '20:' . pack( 'H*', $infohash ) . 'd';
+            $start_pos = strpos( $response, $ben_hash );
+            if ( false !== $start_pos ) {
+                $start = $start_pos + 24;
+                $head = substr( $response , $start );
+                $end = strpos( $head, 'ee' ) + 1;
+                $data = substr( $response, $start, $end );
 
-	/**
-	 * Parses a string and returns the data between $start and $end.
-	 *
-	 * @param string $data The data that will be parsed.
-	 * @param string $start Beginning part of the data.
-	 * @param string $end Ending part of the data.
-	 * @return int Parsed information or 0.
-	 */
-	private function get_information( $data, $start, $end ) {
-		$start_pos = strpos( $data, $start );
-		if ( false !== $start_pos ) {
-			$start = $start_pos + strlen( $start );
-			$head = substr( $data , $start );
-			$end = strpos( $head, $end );
-			$information = substr( $data, $start, $end );
+                $seeders = '8:completei';
+                $torrent_info['seeders'] = $this->get_information( $data, $seeders, 'e' );
 
-			return intval( $information );
-		}
+                $completed = '10:downloadedi';
+                $torrent_info['completed'] = $this->get_information( $data, $completed, 'e' );
 
-		return 0;
-	}
+                $leechers = '10:incompletei';
+                $torrent_info['leechers'] = $this->get_information( $data, $leechers, 'e' );
 
-	/**
-	 * Creates the UDP socket and establishes the connection
-	 *
-	 * @throws \Exception If the socket couldn't be created or connected to.
-	 *
-	 * @param int    $timeout Maximum time for each scrape in seconds, Default 2.
-	 * @param string $host Domain or IP address of the tracker.
-	 * @param int    $port Port number of the tracker, Default 80.
-	 * @return socket resource Created and connected socket.
-	 */
-	private function udp_create_connection( $timeout, $host, $port ) {
-		if ( false === ( $socket = @socket_create( AF_INET, SOCK_DGRAM, SOL_UDP ) ) ) {
-			throw new \Exception( "Couldn't create socket." );
-		}
+                $torrents_data[ $infohash ] = $torrent_info;
+            } else {
+                $this->collect_infohash( $infohash );
+                $this->errors[] = 'Invalid infohash (' . $infohash . ') for tracker: ' . $host . '.';
+            }
+        }
 
-		socket_set_option( $socket, SOL_SOCKET, SO_RCVTIMEO, array( 'sec' => $timeout, 'usec' => 0 ) );
-		socket_set_option( $socket, SOL_SOCKET, SO_SNDTIMEO, array( 'sec' => $timeout, 'usec' => 0 ) );
-		if ( false === @socket_connect( $socket, $host, $port ) ) {
-			throw new \Exception( "Couldn't connect to socket." );
-		}
+        return $torrents_data;
+    }
 
-		return $socket;
-	}
+    /**
+     * Parses a string and returns the data between $start and $end.
+     *
+     * @param string $data The data that will be parsed.
+     * @param string $start Beginning part of the data.
+     * @param string $end Ending part of the data.
+     * @return int Parsed information or 0.
+     */
+    private function get_information( $data, $start, $end ) {
+        $start_pos = strpos( $data, $start );
+        if ( false !== $start_pos ) {
+            $start = $start_pos + strlen( $start );
+            $head = substr( $data , $start );
+            $end = strpos( $head, $end );
+            $information = substr( $data, $start, $end );
 
-	/**
-	 * Writes to the connected socket and returns the transaction ID
-	 *
-	 * @throws \Exception If the socket couldn't be written to.
-	 *
-	 * @param socket resource $socket The socket resource.
-	 * @return int The transaction ID.
-	 */
-	private function udp_connection_request( $socket ) {
-		$connection_id = "\x00\x00\x04\x17\x27\x10\x19\x80";
-		$action = 0;
-		$transaction_id = mt_rand( 0, 2147483647 );
-		$buffer = $connection_id . pack( 'N', $action ) . pack( 'N', $transaction_id );
-		if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
-			socket_close( $socket );
-			throw new \Exception( "Couldn't write to socket." );
-		}
+            return (int) $information;
+        }
 
-		return $transaction_id;
-	}
+        return 0;
+    }
 
-	/**
-	 * Reads the connection response and returns the connection ID
-	 *
-	 * @throws \Exception If anything fails with the scraping.
-	 *
-	 * @param socket resource $socket The socket resource.
-	 * @param int             $transaction_id The transaction ID.
-	 * @param string          $host Domain or IP address of the tracker.
-	 * @param int             $port Port number of the tracker, Default 80.
-	 * @return string The connection ID.
-	 */
-	private function udp_connection_response( $socket, $transaction_id, $host, $port ) {
-		if ( false === ( $response = @socket_read( $socket, 16 ) ) ) {
-			socket_close( $socket );
-			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
-		}
+    /**
+     * Initiates the UDP scraping
+     *
+     * @param array|string $infohashes List (>1) or string of infohash(es).
+     * @param string       $host Domain or IP address of the tracker.
+     * @param int          $port Optional. Port number of the tracker, Default 80.
+     * @param bool         $announce Optional. Use announce instead of scrape, Default false.
+     * @return array List of results.
+     */
+    private function scrape_udp( $infohashes, $host, $port, $announce ) {
+        list( $socket, $transaction_id, $connection_id ) = $this->prepare_udp( $host, $port );
 
-		if ( strlen( $response ) < 16 ) {
-			socket_close( $socket );
-			throw new \Exception( 'Invalid scrape response (' . $host . ':' . $port . ').' );
-		}
+        if ( true === $announce ) {
+            $response = $this->udp_announce( $socket, $infohashes, $connection_id );
+            $keys = 'Nleechers/Nseeders';
+            $start = 12;
+            $end = 16;
+            $offset = 20;
+        } else {
+            $response = $this->udp_scrape( $socket, $infohashes, $connection_id, $transaction_id, $host, $port );
+            $keys = 'Nseeders/Ncompleted/Nleechers';
+            $start = 8;
+            $end = $offset = 12;
+        }
+        $results = $this->udp_scrape_data( $response, $infohashes, $host, $keys, $start, $end, $offset );
 
-		$result = unpack( 'Naction/Ntransaction_id', $response );
-		if ( 0 !== $result['action'] || $result['transaction_id'] !== $transaction_id ) {
-			socket_close( $socket );
-			throw new \Exception( 'Invalid scrape result (' . $host . ':' . $port . ').' );
-		}
+        return $results;
+    }
 
-		$connection_id = substr( $response, 8, 8 );
+    /**
+     * Prepares the UDP connection
+     *
+     * @param string $host Domain or IP address of the tracker.
+     * @param int    $port Optional. Port number of the tracker, Default 80.
+     * @return array Created socket, transaction ID and connection ID.
+     */
+    private function prepare_udp( $host, $port ) {
+        $socket = $this->udp_create_connection( $host, $port );
+        $transaction_id = $this->udp_connection_request( $socket );
+        $connection_id = $this->udp_connection_response( $socket, $transaction_id, $host, $port );
 
-		return $connection_id;
-	}
+        return array( $socket, $transaction_id, $connection_id );
+    }
 
-	/**
-	 * Writes to the connected socket
-	 *
-	 * @throws \Exception If the socket couldn't be written to.
-	 *
-	 * @param socket resource $socket The socket resource.
-	 * @param array           $hashes List (>1) or string of infohash(es).
-	 * @param string          $connection_id The connection ID.
-	 * @param int             $transaction_id The transaction ID.
-	 */
-	private function udp_scrape_request( $socket, $hashes, $connection_id, $transaction_id ) {
-		$action = 2;
-		$infohashes = '';
+    /**
+     * Creates the UDP socket and establishes the connection
+     *
+     * @throws \Exception If the socket couldn't be created or connected to.
+     *
+     * @param string $host Domain or IP address of the tracker.
+     * @param int    $port Port number of the tracker, Default 80.
+     * @return resource $socket Created and connected socket.
+     */
+    private function udp_create_connection( $host, $port ) {
+        if ( false === ( $socket = @socket_create( AF_INET, SOCK_DGRAM, SOL_UDP ) ) ) {
+            throw new \Exception( "Couldn't create socket." );
+        }
 
-		foreach ( $hashes as $infohash ) {
-			$infohashes .= pack( 'H*', $infohash );
-		}
+        $timeout = $this->timeout;
+        socket_set_option( $socket, SOL_SOCKET, SO_RCVTIMEO, array( 'sec' => $timeout, 'usec' => 0 ) );
+        socket_set_option( $socket, SOL_SOCKET, SO_SNDTIMEO, array( 'sec' => $timeout, 'usec' => 0 ) );
+        if ( false === @socket_connect( $socket, $host, $port ) ) {
+            throw new \Exception( "Couldn't connect to socket." );
+        }
 
-		$buffer = $connection_id . pack( 'N', $action ) . pack( 'N', $transaction_id ) . $infohashes;
-		if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
-			socket_close( $socket );
-			throw new \Exception( "Couldn't write to socket." );
-		}
-	}
+        return $socket;
+    }
 
-	/**
-	 * Reads the socket response and returns the torrent data
-	 *
-	 * @throws \Exception If anything fails while reading the response.
-	 *
-	 * @param socket resource $socket The socket resource.
-	 * @param array           $hashes List (>1) or string of infohash(es).
-	 * @param int             $transaction_id The transaction ID.
-	 * @param string          $host Domain or IP address of the tracker.
-	 * @param int             $port Port number of the tracker, Default 80.
-	 * @return array Scraped torrent data.
-	 */
-	private function udp_scrape_response( $socket, $hashes, $transaction_id, $host, $port ) {
-		$read_length = 8 + ( 12 * count( $hashes ) );
+    /**
+     * Writes to the connected socket and returns the transaction ID
+     *
+     * @throws \Exception If the socket couldn't be written to.
+     *
+     * @param resource $socket The socket resource.
+     * @return int The transaction ID.
+     */
+    private function udp_connection_request( $socket ) {
+        $connection_id = "\x00\x00\x04\x17\x27\x10\x19\x80";
+        $action = pack( 'N', 0 );
+        $transaction_id = mt_rand( 0, 2147483647 );
+        $buffer = $connection_id .  $action . pack( 'N', $transaction_id );
+        if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
+            socket_close( $socket );
+            throw new \Exception( "Couldn't write to socket." );
+        }
 
-		if ( false === ( $response = @socket_read( $socket, $read_length ) ) ) {
-			socket_close( $socket );
-			throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
-		}
-		socket_close( $socket );
+        return $transaction_id;
+    }
 
-		if ( strlen( $response ) < $read_length ) {
-			throw new \Exception( 'Invalid scrape response (' . $host . ':' . $port . ').' );
-		}
+    /**
+     * Reads the connection response and returns the connection ID
+     *
+     * @throws \Exception If anything fails with the scraping.
+     *
+     * @param resource $socket The socket resource.
+     * @param int      $transaction_id The transaction ID.
+     * @param string   $host Domain or IP address of the tracker.
+     * @param int      $port Port number of the tracker, Default 80.
+     * @return string The connection ID.
+     */
+    private function udp_connection_response( $socket, $transaction_id, $host, $port ) {
+        if ( false === ( $response = @socket_read( $socket, 16 ) ) ) {
+            socket_close( $socket );
+            throw new \Exception( 'Invalid scrape connection! (' . $host . ':' . $port . ').' );
+        }
 
-		$result = unpack( 'Naction/Ntransaction_id', $response );
-		if ( 2 !== $result['action'] || $result['transaction_id'] !== $transaction_id ) {
-			throw new \Exception( 'Invalid scrape result (' . $host . ':' . $port . ').' );
-		}
+        if ( strlen( $response ) < 16 ) {
+            socket_close( $socket );
+            throw new \Exception( 'Invalid scrape response (' . $host . ':' . $port . ').' );
+        }
 
-		$torrents_data = array();
-		$index = 8;
+        $result = unpack( 'Naction/Ntransaction_id', $response );
+        if ( 0 !== $result['action'] || $result['transaction_id'] !== $transaction_id ) {
+            socket_close( $socket );
+            throw new \Exception( 'Invalid scrape result (' . $host . ':' . $port . ').' );
+        }
 
-		foreach ( $hashes as $infohash ) {
-			$search_string = substr( $response, $index, 12 );
-			$content = unpack( 'N', $search_string )[1];
-			if ( ! empty( $content ) ) {
-				$results = unpack( 'Nseeders/Ncompleted/Nleechers', $search_string );
-				$torrents_data[ $infohash ] = $results;
-			} else {
-				$this->collect_infohash( $infohash );
-				$this->errors[] = 'Invalid infohash (' . $infohash . ') for tracker: ' . $host . '.';
-			}
-			$index += 12;
-		}
+        $connection_id = substr( $response, 8, 8 );
 
-		return $torrents_data;
-	}
+        return $connection_id;
+    }
 
-	/**
-	 * Collects info-hashes that couldn't be scraped.
-	 *
-	 * @param string $infohash Infohash that wasn't scraped.
-	 */
-	private function collect_infohash( $infohash ) {
-		$this->infohashes[] = $infohash;
-	}
+    /**
+     * Reads the socket response and returns the torrent data
+     *
+     * @throws \Exception If anything fails while reading the response.
+     *
+     * @param resource $socket The socket resource.
+     * @param array    $hashes List (>1) or string of infohash(es).
+     * @param string   $connection_id The connection ID.
+     * @param int      $transaction_id The transaction ID.
+     * @param string   $host Domain or IP address of the tracker.
+     * @param int      $port Port number of the tracker, Default 80.
+     * @return string Response data.
+     */
+    private function udp_scrape( $socket, $hashes, $connection_id, $transaction_id, $host, $port ) {
+        $this->udp_scrape_request( $socket, $hashes, $connection_id, $transaction_id );
 
-	/**
-	 * Checks if there are any errors
-	 *
-	 * @return boolean True or false, depending if errors are present or not.
-	 */
-	public function has_errors() {
-		return ! empty( $this->errors );
-	}
+        $read_length = 8 + ( 12 * count( $hashes ) );
+        if ( false === ( $response = @socket_read( $socket, $read_length ) ) ) {
+            socket_close( $socket );
+            throw new \Exception( 'Invalid scrape connection (' . $host . ':' . $port . ').' );
+        }
+        socket_close( $socket );
 
-	/**
-	 * Returns all the errors that were logged
-	 *
-	 * @return array All the logged errors.
-	 */
-	public function get_errors() {
-		return $this->errors;
-	}
+        if ( strlen( $response ) < $read_length ) {
+            throw new \Exception( 'Invalid scrape response (' . $host . ':' . $port . ').' );
+        }
+
+        $result = unpack( 'Naction/Ntransaction_id', $response );
+        if ( 2 !== $result['action'] || $result['transaction_id'] !== $transaction_id ) {
+            throw new \Exception( 'Invalid scrape result (' . $host . ':' . $port . ').' );
+        }
+
+        return $response;
+    }
+
+    /**
+     * Writes to the connected socket
+     *
+     * @throws \Exception If the socket couldn't be written to.
+     *
+     * @param resource $socket The socket resource.
+     * @param array    $hashes List (>1) or string of infohash(es).
+     * @param string   $connection_id The connection ID.
+     * @param int      $transaction_id The transaction ID.
+     */
+    private function udp_scrape_request( $socket, $hashes, $connection_id, $transaction_id ) {
+        $action = pack( 'N', 2 );
+
+        $infohashes = '';
+        foreach ( $hashes as $infohash ) {
+            $infohashes .= pack( 'H*', $infohash );
+        }
+
+        $buffer = $connection_id . $action . pack( 'N', $transaction_id ) . $infohashes;
+        if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
+            socket_close( $socket );
+            throw new \Exception( "Couldn't write to socket." );
+        }
+    }
+
+    /**
+     * Writes the announce to the connected socket
+     *
+     * @throws \Exception If the socket couldn't be written to.
+     *
+     * @param resource $socket The socket resource.
+     * @param array    $hashes List (>1) or string of infohash(es).
+     * @param string   $connection_id The connection ID.
+     * @return string Torrent(s) data.
+     */
+    private function udp_announce( $socket, $hashes, $connection_id ) {
+        $action = pack( 'N', 1 );
+        $downloaded = $left = $uploaded = "\x30\x30\x30\x30\x30\x30\x30\x30";
+        $peer_id = $this->random_peer_id();
+        $event = pack( 'N', 3 );
+        $ip = pack( 'N', 0 );
+        $key = pack( 'N', mt_rand( 0, 2147483647 ) );
+        $num_want = -1;
+        $ann_port = pack( 'N', mt_rand( 0, 255 ) );
+
+        $response_data = '';
+        foreach ( $hashes as $infohash ) {
+            $transaction_id = mt_rand( 0, 2147483647 );
+            $buffer = $connection_id . $action . pack( 'N', $transaction_id ) . pack( 'H*', $infohash ) .
+                $peer_id . $downloaded . $left . $uploaded . $event . $ip . $key . $num_want . $ann_port;
+
+            if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
+                socket_close( $socket );
+                throw new \Exception( "Couldn't write announce to socket." );
+            }
+
+            $response = $this->udp_verify_announce( $socket, $transaction_id );
+            if ( false === $response ) {
+                continue;
+            }
+
+            $response_data .= $response;
+        }
+        socket_close( $socket );
+
+        return $response_data;
+    }
+
+    /**
+     * Generates a random peer ID
+     *
+     * @return string Generated peer ID.
+     */
+    private function random_peer_id() {
+        $identifier = '-SP0050-';
+        $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        $peer_id = $identifier . substr( str_shuffle( $chars ), 0, 12 );
+
+        return $peer_id;
+    }
+
+    /**
+     * Verifies the correctness of the announce response
+     *
+     * @param resource $socket The socket resource.
+     * @param int      $transaction_id The transaction ID.
+     * @return string Response data.
+     */
+    private function udp_verify_announce( $socket, $transaction_id ) {
+        if ( false === ( $response = @socket_read( $socket, 20 ) ) ) {
+            return false;
+        }
+
+        if ( strlen( $response ) < 20 ) {
+            return false;
+        }
+
+        $result = unpack( 'Naction/Ntransaction_id', $response );
+        if ( 1 !== $result['action'] || $result['transaction_id'] !== $transaction_id ) {
+            return false;
+        }
+
+        return $response;
+    }
+
+    /**
+     * Reads the socket response and returns the torrent data
+     *
+     * @param string $response Data from the request response.
+     * @param array  $hashes List (>1) or string of infohash(es).
+     * @param string $host Domain or IP address of the tracker.
+     * @param string $keys Keys for the unpacked information.
+     * @param int    $start Start of the content we want to unpack.
+     * @param int    $end End of the content we want to unpack.
+     * @param int    $offset Offset to the next content part.
+     * @return array Scraped torrent data.
+     */
+    private function udp_scrape_data( $response, $hashes, $host, $keys, $start, $end, $offset ) {
+        $torrents_data = array();
+
+        foreach ( $hashes as $infohash ) {
+            $byte_string = substr( $response, $start, $end );
+            $content = unpack( 'N', $byte_string )[1];
+            if ( ! empty( $content ) ) {
+                $results = unpack( $keys, $byte_string );
+                $torrents_data[ $infohash ] = $results;
+            } else {
+                $this->collect_infohash( $infohash );
+                $this->errors[] = 'Invalid infohash (' . $infohash . ') for tracker: ' . $host . '.';
+            }
+            $start += $offset;
+        }
+
+        return $torrents_data;
+    }
+
+    /**
+     * Collects info-hashes that couldn't be scraped.
+     *
+     * @param string $infohash Infohash that wasn't scraped.
+     */
+    private function collect_infohash( $infohash ) {
+        $this->infohashes[] = $infohash;
+    }
+
+    /**
+     * Checks if there are any errors
+     *
+     * @return bool True or false, depending if errors are present or not.
+     */
+    public function has_errors() {
+        return ! empty( $this->errors );
+    }
+
+    /**
+     * Returns all the errors that were logged
+     *
+     * @return array All the logged errors.
+     */
+    public function get_errors() {
+        return $this->errors;
+    }
 }

@@ -131,6 +131,6 @@ From [The BitTorrent Protocol Specification](http://www.bittorrent.org/beps/bep_
 
 There are many ways to retrieve the info-hashes from your torrents, a PHP based solution would be [torrent-bencode](https://github.com/bhutanio/torrent-bencode) for example.
 
-- I need some public trackers! Where can I find some?
+- I need public trackers! Where can I find some?
 
 Check out [newTrackon](https://newtrackon.com/) and [trackerslist](https://github.com/ngosang/trackerslist/blob/master/trackers_all.txt).

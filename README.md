@@ -11,6 +11,7 @@ Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for t
 - Allows setting timeout per tracker and max. number of trackers
 - Supports up to 64 info-hashes per scrape
 - Aims to be as lightweight, straightforward and efficient as possible
+- Supports scraping via scrape (default) and announce requests :sparkles:
 
 # Basic usage examples
 ### Single info-hash and single tracker:
@@ -110,6 +111,14 @@ $info = $scraper->scrape( $hashes, $trackers, 2, 3 );
 - Each tracker will have a timeout of 3 seconds (total timeout in this case would be 6 seconds).
 - Default: 2 seconds (recommended).
 
+### Announce scraping
+```
+$trackers = array( 'udp://tracker.opentrackr.org:1337/announce', 'http://explodie.org:6969/announce' );
+$hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31582327A5BAAE35B11BDA01' );
+
+$info = $scraper->scrape( $hashes, $trackers, 2, 3, true );
+```
+
 # FAQs
 - What are info-hashes? How do I get them?
 
@@ -118,3 +127,7 @@ From [The BitTorrent Protocol Specification](http://www.bittorrent.org/beps/bep_
 > The 20 byte sha1 hash of the bencoded form of the info value from the metainfo file. Note that this is a substring of the metainfo file. The info-hash must be the hash of the encoded form as found in the .torrent file, regardless of it being invalid. This value will almost certainly have to be escaped.
 
 There are many ways to retrieve the info-hashes from your torrents, a PHP based solution would be [torrent-bencode](https://github.com/bhutanio/torrent-bencode) for example.
+
+- I need some public trackers! Where can I find some?
+
+Check out [newTrackon](https://newtrackon.com/) and [trackerslist](https://github.com/ngosang/trackerslist/blob/master/trackers_all.txt).

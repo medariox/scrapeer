@@ -25,7 +25,7 @@ class Scraper {
      *
      * @var string
      */
-    const VERSION = '0.5.0';
+    const VERSION = '0.5.1';
 
     /**
      * Array of errors
@@ -70,11 +70,11 @@ class Scraper {
             $trackers = array( $trackers );
         }
 
-        if ( ! is_int( $timeout ) || $timeout < 1 ) {
-            $this->errors[] = 'Timeout must be a valid integer.';
-            return $final_result;
-        } else {
+        if ( is_int( $timeout ) ) {
             $this->timeout = $timeout;
+        } else {
+            $this->timeout = 2;
+            $this->errors[] = 'Timeout must be an integer. Using default value.';
         }
 
         try {
@@ -566,7 +566,7 @@ class Scraper {
         $downloaded = $left = $uploaded = "\x30\x30\x30\x30\x30\x30\x30\x30";
         $peer_id = $this->random_peer_id();
         $event = pack( 'N', 3 );
-        $ip = pack( 'N', 0 );
+        $ip_addr = pack( 'N', 0 );
         $key = pack( 'N', mt_rand( 0, 2147483647 ) );
         $num_want = -1;
         $ann_port = pack( 'N', mt_rand( 0, 255 ) );
@@ -575,7 +575,7 @@ class Scraper {
         foreach ( $hashes as $infohash ) {
             $transaction_id = mt_rand( 0, 2147483647 );
             $buffer = $connection_id . $action . pack( 'N', $transaction_id ) . pack( 'H*', $infohash ) .
-                $peer_id . $downloaded . $left . $uploaded . $event . $ip . $key . $num_want . $ann_port;
+                $peer_id . $downloaded . $left . $uploaded . $event . $ip_addr . $key . $num_want . $ann_port;
 
             if ( false === @socket_write( $socket, $buffer, strlen( $buffer ) ) ) {
                 socket_close( $socket );
@@ -600,7 +600,7 @@ class Scraper {
      * @return string Generated peer ID.
      */
     private function random_peer_id() {
-        $identifier = '-SP0050-';
+        $identifier = '-SP0051-';
         $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
         $peer_id = $identifier . substr( str_shuffle( $chars ), 0, 12 );
 

@@ -118,6 +118,9 @@ $hashes = array( '699cda895af6fbd5a817fff4fe6fa8ab87e36f48', '4344503B7E797EBF31
 
 $info = $scraper->scrape( $hashes, $trackers, 2, 3, true );
 ```
+- Default: false.
+- Prefer scrape requests over announce requests for multiple info-hashes (usually faster).
+- _Note:_ UDP trackers only return seeders and leechers information. This is a [protocol limitation](http://www.bittorrent.org/beps/bep_0015.html).
 
 # FAQs
 - What are info-hashes? How do I get them?

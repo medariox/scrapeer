@@ -25,7 +25,7 @@ class Scraper {
      *
      * @var string
      */
-    const VERSION = '0.5.1';
+    const VERSION = '0.5.2';
 
     /**
      * Array of errors
@@ -84,7 +84,7 @@ class Scraper {
             return $final_result;
         }
 
-        $max_iterations = isset( $max_trackers ) ? $max_trackers : count( $trackers );
+        $max_iterations = is_int( $max_trackers ) ? $max_trackers : count( $trackers );
         foreach ( $trackers as $index => $tracker ) {
             if ( ! empty( $this->infohashes ) && $index < $max_iterations ) {
                 $info = parse_url( $tracker );
@@ -600,7 +600,7 @@ class Scraper {
      * @return string Generated peer ID.
      */
     private function random_peer_id() {
-        $identifier = '-SP0051-';
+        $identifier = '-SP0052-';
         $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
         $peer_id = $identifier . substr( str_shuffle( $chars ), 0, 12 );
 

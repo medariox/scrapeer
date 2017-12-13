@@ -25,7 +25,7 @@ class Scraper {
      *
      * @var string
      */
-    const VERSION = '0.5.2';
+    const VERSION = '0.5.3';
 
     /**
      * Array of errors
@@ -324,7 +324,7 @@ class Scraper {
             $start_pos = strpos( $response, $ben_hash );
             if ( false !== $start_pos ) {
                 $start = $start_pos + 24;
-                $head = substr( $response , $start );
+                $head = substr( $response, $start );
                 $end = strpos( $head, 'ee' ) + 1;
                 $data = substr( $response, $start, $end );
 
@@ -359,7 +359,7 @@ class Scraper {
         $start_pos = strpos( $data, $start );
         if ( false !== $start_pos ) {
             $start = $start_pos + strlen( $start );
-            $head = substr( $data , $start );
+            $head = substr( $data, $start );
             $end = strpos( $head, $end );
             $information = substr( $data, $start, $end );
 
@@ -600,7 +600,7 @@ class Scraper {
      * @return string Generated peer ID.
      */
     private function random_peer_id() {
-        $identifier = '-SP0052-';
+        $identifier = '-SP0053-';
         $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
         $peer_id = $identifier . substr( str_shuffle( $chars ), 0, 12 );
 

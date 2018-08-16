@@ -1,6 +1,6 @@
 # Scrapeer
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/85e5f162c654496ea4eaf587615a4f1c)](https://www.codacy.com/app/pymedusa/Scrapeer?utm_source=github.com&utm_medium=referral&utm_content=medariox/Scrapeer&utm_campaign=badger)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bfe7d46e05c8415a9bae17e70c7088e0)](https://www.codacy.com/project/medariox/scrapeer/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=medariox/scrapeer&amp;utm_campaign=Badge_Grade_Dashboard)
 
 Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for torrent information.
 

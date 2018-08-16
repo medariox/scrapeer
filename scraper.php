@@ -25,7 +25,7 @@ class Scraper {
      *
      * @var string
      */
-    const VERSION = '0.5.3';
+    const VERSION = '0.5.4';
 
     /**
      * Array of errors
@@ -600,7 +600,7 @@ class Scraper {
      * @return string Generated peer ID.
      */
     private function random_peer_id() {
-        $identifier = '-SP0053-';
+        $identifier = '-SP0054-';
         $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
         $peer_id = $identifier . substr( str_shuffle( $chars ), 0, 12 );
 
@@ -648,7 +648,8 @@ class Scraper {
 
         foreach ( $hashes as $infohash ) {
             $byte_string = substr( $response, $start, $end );
-            $content = unpack( 'N', $byte_string )[1];
+            $data = unpack( 'N', $byte_string );
+            $content = $data[1];
             if ( ! empty( $content ) ) {
                 $results = unpack( $keys, $byte_string );
                 $torrents_data[ $infohash ] = $results;

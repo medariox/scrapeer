@@ -1,8 +1,10 @@
 # Scrapeer
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/5e44726069a34d50976a9008cb3920aa)](https://www.codacy.com/app/medariox/scrapeer?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=medariox/scrapeer&amp;utm_campaign=Badge_Grade)
-
 Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for torrent information.
+
+![scrapeer image](https://i.imgur.com/HYGFBlg.jpg)
+
+*Original image by [@alinnnaaaa](https://unsplash.com/photos/ZiQkhI7417A).*
 
 # Features
 - Retrieves seeders, leechers and completed torrent information
@@ -12,6 +14,9 @@ Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for t
 - Supports up to 64 info-hashes per scrape
 - Aims to be as lightweight, straightforward and efficient as possible
 - Supports scraping via scrape (default) and announce requests :sparkles:
+
+# Note
+This is the only official source for Scrapeer. Other repositories — e.g. the ones on Packagist — are unofficial and should be avoided!
 
 # Basic usage examples
 ### Single info-hash and single tracker:

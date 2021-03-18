@@ -1,6 +1,6 @@
 # Scrapeer
 
-Scrapeer, a tiny PHP library that lets you scrape HTTP(S) and UDP trackers for torrent information.
+Essential PHP library that scrapes HTTP(S) and UDP trackers for torrent information.
 
 ![scrapeer image](https://i.imgur.com/HYGFBlg.jpg)
 
